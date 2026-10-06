@@ -1,0 +1,199 @@
+\section{Proofs}
+\label{app:proofs}
+
+\subsection{\Cref{prop:lmmse}}
+Write $\lmsg^{\mathrm{p}}_i$ for the forward message at site $i$ after projection and
+$\ell_i$ for the Gaussian unary likelihood. We show by induction that every projected
+message equals the corresponding exact message of the covariance-matched Gaussian chain.
+The initial message is Gaussian or projected to the Gaussian with the same first two
+moments, which is the Gaussian chain's initial message. If $\lmsg^{\mathrm{p}}_{i-1}$ is
+that chain's message, with mean $m$ and variance $v$, multiplying by $\ell_{i-1}$ gives
+a Gaussian with the precision-weighted moments, identical in both chains; the transition
+integral against $a_i=\corr a_{i-1}+\varepsilon_i$ is the density of $\corr a_{i-1}+\varepsilon_i$,
+whose mean and variance are $(\corr m',\corr^2v'+\ivar)$ for every driving noise with
+moments $(0,\ivar)$, so $\Pgauss$ returns the Gaussian chain's next message. The
+backward message is $h(\corr a)$ with $h$ the density of $a''-\varepsilon$ under the
+incoming Gaussian, of mean $m'$ and variance $v'+\ivar$; as a function of $a$ its
+normalised moments are $(m'/\corr,(v'+\ivar)/\corr^2)$, which is where $\corr\neq0$ is
+used, starting from the terminal likelihood $\ell_{\nsites}$ (the flat terminal message
+is not normalisable and contributes no factor). Every projected belief is therefore the
+Gaussian chain's belief, whose posterior mean is linear in $\vx$ and coincides with the
+LMMSE estimator $e^{-t}\Sig_0\Sig_t^{-1}\vx$. Since the recursion never read $\innov$
+beyond $(0,\ivar)$, the estimator is the same for every such law; nothing assumes
+stationarity, since the induction carries site-dependent moments. The algebraic steps
+(the two moment maps as integrals, the covariance identities, and the optimality of the
+normal-equation gain in arbitrary dimension) are machine-checked in Lean~4
+(\codefile{lean/README.md}); the projection step itself is not. The two consequences
+stated after the proposition follow from the same fact: sum-product with a Gaussian
+kernel is the Gaussian chain's smoother with that kernel's covariance, a linear map, and
+the LMMSE of the true covariance is the best linear map in mean square; and the Gaussian
+log-likelihood of a noised sample is a function of its sample covariance, whose
+expectation $e^{-2t}\Sig_0+\Dt\Id$ identifies $(\corr,\ivar)$.
+
+\subsection{\Cref{prop:kalman}}
+(i) $\va$ and $\vz$ are independent and Gaussian, so $(\va,\vx)$ is jointly Gaussian with
+$\Cov(\vx)=e^{-2t}\Sig_0+\Dt\Id=\Sig_t$ and $\Cov(\va,\vx)=e^{-t}\Sig_0$. Hence
+$\Pt=\normal{0}{\Sig_t}$, $\score=\nabla\log\Pt=-\Sig_t^{-1}\vx$, and
+$\pmean{\va}=\Cov(\va,\vx)\Cov(\vx)^{-1}\vx=e^{-t}\Sig_0\Sig_t^{-1}\vx$. Then
+$\vx-e^{-t}\pmean{\va}=(\Sig_t-e^{-2t}\Sig_0)\Sig_t^{-1}\vx=\Dt\Sig_t^{-1}\vx$, which is
+Tweedie's identity $\score=-(\vx-e^{-t}\pmean{\va})/\Dt$.
+(ii) Forward, by induction. $\lmsg_1=\mu=\normal{0}{1}$ is the law of $a_1$ before any
+observation. If $\lmsg_i(a)=p(a_i{=}a\mid x_{1:i-1})=\mathcal N(a;m,P)$, Bayes' rule gives
+$\lmsg_i\ell_i\propto p(a_i\mid x_{1:i})$, Gaussian with mean $m+k(x_i-e^{-t}m)$ and variance
+$(1-ke^{-t})P$, $k=e^{-t}P/(e^{-2t}P+\Dt)$: the Kalman update. The Markov property then gives
+$\lmsg_{i+1}(a')=\int\kernel(a'\mid a)\lmsg_i(a)\ell_i(a)\dd a\propto p(a_{i+1}{=}a'\mid x_{1:i})$,
+Gaussian with mean $\corr$ times the filtered mean and variance $\corr^2$ times the filtered
+variance plus $\ivar$: the Kalman prediction. Backward, $\rmsg_{\nsites}\equiv1$, and if
+$\rmsg_{i+1}(a)\propto p(x_{i+2:\nsites}\mid a_{i+1}{=}a)$ then
+$\rmsg_i(a)=\int\kernel(a'\mid a)\ell_{i+1}(a')\rmsg_{i+1}(a')\dd a'\propto
+p(x_{i+1:\nsites}\mid a_i{=}a)$, again by the Markov property; it is the exponential of a
+quadratic in $a$ (a Gaussian in information form, of zero precision at $i=\nsites$). Since
+$x_{i+1:\nsites}$ and $x_{1:i}$ are conditionally independent given $a_i$,
+$\lmsg_i\ell_i\rmsg_i\propto p(a_i\mid x_{1:i})\,p(x_{i+1:\nsites}\mid a_i)\propto
+p(a_i\mid\vx)$. The Rauch--Tung--Striebel smoother computes the same conditional law by another
+factorisation, conditioning backward on $a_{i+1}$; two exact computations of one law agree, and
+its mean is $\pmean{a_i}$ of (i). \codefile{tests/test\_kalman.py} checks the three against each
+other to $10^{-12}$.
+
+\subsection{\Cref{thm:hermite}}
+For $z\sim\normal{0}{1}$, real $a$ and $\alpha\in(0,1)$, the
+generating function $e^{sx-s^2/2}=\sum_n\Hen{n}(x)s^n/n!$ evaluated at
+$x=\alpha a+\sqrt{1-\alpha^2}\,z$ and averaged over $z$ gives
+$e^{s\alpha a-s^2\alpha^2/2}=\sum_n\Hen{n}(a)(\alpha s)^n/n!$, hence
+$\E_z\Hen{n}(\alpha a+\sqrt{1-\alpha^2}\,z)=\alpha^n\Hen{n}(a)$. The coordinates of $\vz$ are
+independent given $\va$, so the product form holds for $H_\nu$; integrating over
+$\va\sim\Pz$ requires only $\E|\va|^{|\nu|}<\infty$. The cases $n\le4$ are verified in
+Lean as polynomial identities under the first four Gaussian moments.
+
+\subsection{\Cref{thm:decay,thm:general}}
+\label{app:proof-decay}
+
+\paragraph{Exact identities.}
+With $\alpha=e^{-t}$ and $\Dt=1-\alpha^2$, Bayes' rule gives
+$\Pt(\vx)=\gref_{\Dt}(\vx)\,\E_{\Pz}\exp\bigl(\alpha\vx\cdot\va/\Dt-\alpha^2|\va|^2/2\Dt\bigr)$,
+where $\gref_{\Dt}$ is the $\normal{0}{\Dt\Id}$ density. Hence
+$\log\Pt(\vx)=\log\gref_{\Dt}(\vx)+\Lambda(s,b)$ with $s=\alpha\vx/\Dt$, $b=\alpha^2/\Dt$
+and $\Lambda(s,b)=\log\E_{\Pz}\exp(s\cdot\va-b|\va|^2/2)$;
+$\E[\va\mid\vx]=\nabla_s\Lambda$ and $\score=-\vx/\Dt+(\alpha/\Dt)\nabla_s\Lambda$.
+
+\paragraph{Where the expansion lives.}
+Under \cref{ass:exp} the integrand is dominated by $e^{\lambda|\va|}$ on
+$\{|s|\le\lambda\}\times\{b\ge0\}$, so $\Lambda$ is finite there and real-analytic in $s$
+on $|s|<\lambda$ for every $b\ge0$, with Taylor coefficients at the origin equal to the
+joint cumulants of the linear form $s\cdot\va$ and the quadratic form $|\va|^2/2$; the
+tilted laws $\propto\Pz(\va)e^{\theta(s\cdot\va-b|\va|^2/2)}$, $\theta\in[0,1]$, have
+moments of every order bounded uniformly on $\{|s|\le\lambda/2,\,0\le b\le1\}$ by
+constants depending on $\lambda$ and $\E e^{\lambda|\va|}$. Without \cref{ass:exp} the
+expansion at $b=0$ is not available: $\Lambda(s,0)=\log\E e^{s\cdot\va}$ is infinite for
+every $s\neq0$ when $\Pz$ has only finitely many moments.
+
+\paragraph{Grading.}
+Expand $\Lambda$ in $(s,b)$ at the origin and grade a monomial $s^{j}b^{k}$ by $j+2k$;
+since $s=O(\alpha)$ and $b=O(\alpha^2)$, the grade is the order in $\alpha$. By the
+symmetry of $\Pz$ under $\va\mapsto-\va$ only even grades occur:
+$\Lambda=\Lambda_2+\Lambda_4+R_6$, with
+$\Lambda_2=\tfrac12s^{\!\top}\Sig_0s-\tfrac b2\operatorname{tr}\Sig_0$ and
+\[
+  \Lambda_4=\tfrac1{24}\kfour[s,s,s,s]
+   -\tfrac b4\sum_i\operatorname{cum}(s\!\cdot\!\va,s\!\cdot\!\va,a_i^2)
+   +\tfrac{b^2}8\sum_{ij}\operatorname{cum}(a_i^2,a_j^2),
+\]
+where $\operatorname{cum}$ is the joint cumulant under $\Pz$ and the squares enter because
+$b$ multiplies $|\va|^2/2$: $\operatorname{cum}(s\!\cdot\!\va,s\!\cdot\!\va,a_i^2)
+=\operatorname{cum}(s\!\cdot\!\va,s\!\cdot\!\va,a_i,a_i)+2(\Sig_0s)_i^2$ and
+$\operatorname{cum}(a_i^2,a_j^2)=\kfour[i,i,j,j]+2(\Sig_0)_{ij}^2$, the added terms being
+functions of $\Sig_0$ alone. Every fourth-order joint cumulant of linear forms in $\va$
+equals its value under the covariance twin plus a linear contraction of $\kfour$, so
+$\Lambda_4-\Lambda_4^{\mathrm{G}}$ is linear in $\kfour$ and
+$\Lambda_2=\Lambda_2^{\mathrm{G}}$. The remainder $R_6$ is the Lagrange
+remainder of grade six, a combination of sixth-order derivatives of $\Lambda$ at an
+intermediate point of the segment to the origin, i.e.\ of tilted joint cumulants of
+order six; on the bulk $B=\{|s|\le\lambda/2\}=\{|\vx|\le\lambda\Dt/2\alpha\}$ it is
+bounded by $C\alpha^6(1+|\vx|)^6$ with $C$ depending only on $\lambda$ and
+$\E e^{\lambda|\va|}$, by the uniform moment bound above.
+
+\paragraph{Leading term of the score gap.}
+$\score-\Sgauss=(\alpha/\Dt)\nabla_s(\Lambda-\Lambda^{\mathrm{G}})
+=(\alpha/\Dt)\bigl[\nabla_s(\Lambda_4-\Lambda_4^{\mathrm{G}})+\nabla_sR_6-\nabla_sR_6^{\mathrm{G}}\bigr]$.
+Substituting $s=\alpha\vx/\Dt$, $b=\alpha^2/\Dt$ and expanding in $\alpha$, the
+grade-four term is
+$\alpha^4\,\nabla_{\vx}\bigl[\tfrac1{24}\sum_{ijkl}\kfour[ijkl]\,{:}x_ix_jx_kx_l{:}\bigr]+O(\alpha^6(1+|\vx|)^5)$,
+where ${:}\cdot{:}$ is the Wick (Hermite) product: the three contributions of $\Lambda_4$
+combine into the Hermite form because $b=\alpha^2(1+O(\alpha^2))$ and the cumulant
+contractions with $\delta_{ii}$ are exactly the terms that convert monomials into Hermite
+polynomials. The $m$-th component is $\alpha^4\,\tfrac16\sum_{jkl}\kfour[mjkl]\,{:}x_jx_kx_l{:}$.
+
+\paragraph{Second moment.}
+Under $\gref$, Wick's theorem gives
+$\E_{\gref}[{:}x_jx_kx_l{:}\,{:}x_{j'}x_{k'}x_{l'}{:}]$ equal to the number of perfect
+matchings of $\{j,k,l\}$ with $\{j',k',l'\}$ respecting indices; contracted with the
+symmetric tensor this yields
+$\E_{\gref}\bigl[(\tfrac16\sum_{jkl}\kfour[mjkl]{:}x_jx_kx_l{:})^2\bigr]
+=\tfrac{3!}{36}\sum_{jkl}\kfour[mjkl]^2$, and summing over $m$,
+$\E_{\gref}\lVert\text{leading term}\rVert^2=\tfrac16\Frob{\kfour}^2\alpha^8$. Replacing
+$\E_{\gref}$ by $\E_{\Pt}$ on the bulk costs a factor $1+O(\alpha^2)$:
+$\Pt/\gref=1+\alpha^2\tfrac12\langle\Sig_0-\Id,{:}\vx\vx^{\!\top}{:}\rangle+O(\alpha^4(1+|\vx|)^4)$
+there, and the degree-2 correction carries an explicit factor $\alpha^2$, so its contribution to the second moment is of relative size $\alpha^2$. The cross term between the
+leading term and the grade-six remainder is $O(\alpha^{10})$ by Cauchy--Schwarz and the
+moment bound. The constant in $O(\alpha^2)$ depends on $\Pz$ and $\nsites$; for the
+Gaussian chain it is $\lmax(\Sig_0)$ (last paragraph).
+
+\paragraph{Tail.}
+On $B^c=\{|\alpha\vx|>\lambda\Dt/2\}$ the expansion is not used. By the tower property
+and Jensen, $\E_{\Pt}[\lVert\E[\va\mid\vx]\rVert^2\mathbf 1_{B^c}]\le\E[|\va|^2\mathbf 1_{B^c}]$,
+and $B^c\subset\{\alpha|\va|>c/\alpha\}\cup\{\sqrt{\Dt}|\vz|>c/\alpha\}$ with
+$c=\lambda\Dt/4$, so $\Pt(B^c)\le e^{-\lambda c/\alpha^2}\E e^{\lambda|\va|}+e^{-c^2/2\alpha^2}$,
+which is $\exp(-c'e^{2t})$ under \cref{ass:exp}. Since
+$\lVert\score-\Sgauss\rVert^2\le C(|\vx|^2+\alpha^2\lVert\E[\va\mid\vx]\rVert^2+\alpha^2\lVert\E^{\mathrm G}[\va\mid\vx]\rVert^2)/\Dt^2$,
+Cauchy--Schwarz against $\Pt(B^c)^{1/2}$ and the finiteness of $\E|\va|^4$ make the tail
+contribution below every power of $\alpha$. Together,
+$\E_{\Pt}\lVert\score-\Sgauss\rVert^2=\tfrac16\Frob{\kfour}^2e^{-8t}(1+O(e^{-2t}))$,
+which is \cref{eq:scoregap}. Without \cref{ass:exp} the tail probability is polynomial
+in $\alpha$ (of order $\alpha^{2\nu}$ for a tail index $\nu$), and for $\nu\le8$ the
+tail's own contribution is of order $\alpha^\nu$ and leads; this is the heavy-tailed
+regime of \cref{sec:theory}.
+
+\paragraph{Information and the general order.}
+$\partial_\theta\log\Pt=\partial_\theta\Lambda$. If $\partial_\theta\Sig_0\neq0$ the
+grade-two term $\tfrac{\alpha^2}2\langle\partial_\theta\Sig_0,{:}\vx\vx^{\!\top}{:}\rangle$
+leads, and $\E_{\gref}$ of its square is
+$\tfrac{\alpha^4}4\cdot2\Frob{\partial_\theta\Sig_0}^2$ by Wick, giving \cref{eq:info2}.
+If $\partial_\theta\Sig_0=0$ the grade-four term
+$\tfrac{\alpha^4}{24}\sum\partial_\theta\kfour[ijkl]{:}x_ix_jx_kx_l{:}$ leads, with
+$\gref$-second moment $\tfrac{4!}{24^2}\Frob{\partial_\theta\kfour}^2\alpha^8$, giving
+\cref{eq:info4}; the corrections and the tail are handled as above. For
+\cref{thm:general}, the graded expansion of $\Lambda$ and the expansion
+$\log\bigl(1+\sum_{|\nu|\ge2}\alpha^{|\nu|}\E_{\Pz}[H_\nu]H_\nu(\vx)/\nu!\bigr)$ obtained
+from Mehler's kernel are two formal series in $\alpha$ for the same function whose
+coefficients at each grade are polynomials in the moments of $\Pz$ up to that grade; they
+agree on every compactly supported $\Pz$, where both converge, hence identically. The
+grade-$m$ coefficient of $\partial_\theta\log(\Pt/\gref)$ is therefore
+$\alpha^m\sum_{|\nu|=m}\partial_\theta\E[H_\nu]H_\nu(\vx)/\nu!$ plus $\partial_\theta$ of
+products of lower-grade terms, each of which vanishes by the minimality of $m$; its
+$\gref$-second moment is $\alpha^{2m}\sum_{|\nu|=m}(\partial_\theta\E H_\nu)^2/\nu!$ by
+orthogonality, and the bulk correction and the tail are as before. Since
+${:}\vx\vx^{\!\top}{:}$ and the degree-four Hermite polynomials are $\gref$-orthogonal,
+the leading cross-information between a degree-2 and a degree-4 coordinate vanishes, so
+the leading term of the efficient information of the degree-4 coordinate after
+degree-2 nuisances equals that of its raw information. For the Gaussian chain
+$\vx_t\sim\normal{0}{\Sig_t(\theta)}$ exactly and the stated trace formula is the
+Gaussian Fisher information; its limit $e^{4t}I_t\to\tfrac12\Frob{\partial_\theta\Sig_0}^2$
+follows from $\Sig_t\to\Id$ and $\partial_\theta\Sig_t=\alpha^2\partial_\theta\Sig_0$, and
+is machine-checked in Lean (\codefile{lean/README.md}, target~3).
+
+\paragraph{\Cref{cor:samples}.}
+At fixed $t>0$ the family $\{\Pt^\theta\}$ is differentiable in quadratic mean with
+finite, non-singular information (smoothness of $\Lambda$ in $\theta$ under
+\cref{ass:exp}), so the local asymptotic minimax theorem of H\'ajek and Le Cam applies
+and the maximum-likelihood estimator is asymptotically efficient; the stated bound is
+$1/I_t^{\mathrm{eff}}$ with the efficient information of \cref{thm:general}.
+
+\paragraph{The crossover.}
+For the Gaussian chain the expansion of $\Pt/\gref$ is an expansion in $\alpha^2\Sig_0$,
+i.e.\ in $\alpha^2\lmax(\Sig_0)$ in operator norm, with $\lmax\le(1+\corr)/(1-\corr)$ by
+the Toeplitz bound $\lmax\le\sum_k\corr^{|k|}$; $\Sig_t^{-1}$ is within $\alpha^2\lmax$
+of $\Id$ in operator norm, which is the source of $\epsilon_t=O(e^{-2t}\lmax)$ and of
+$\tstar=\tfrac12\log\lmax$. The same chain has $\Pt/\gref\in L^2(\gref)$ iff
+$2\Id-\Sig_t\succ0$, i.e.\ iff $e^{2t}>\lmax-1$, so the Hermite expansion of $\Pt/\gref$
+converges in $L^2(\gref)$ exactly above that time; for the Laplace chain it never does,
+which is why the proof goes through $\Lambda$.

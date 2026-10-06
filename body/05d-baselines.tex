@@ -1,0 +1,98 @@
+%% Included by 05-experiments.tex only when sections/baseline-numbers.tex exists (E03 done).
+\input{sections/tab-baselines}
+\Cref{tab:baselines} compares six architectures trained under one recipe (interface~A)
+with the configuration that won each family's screen on the development seeds
+(\cref{app:protocol}). Weight sharing separates the fully connected network from the rest
+at every size ($\baseWorstA$ against $\baseBestA$ at $\nseq=32$); locality is the better
+prior when sequences are scarce, the \baseBestArchA{} being the best network at
+$\nseq=32$, and stops paying once they are not: the window head moves only from
+$\baseWindowC$ to $\baseWindowD$ between $\nseq=512$ and $2048$ while the global
+architectures keep improving, the best reaching $\baseBestD$. That plateau is the
+architecture's and not the radius's: the best estimator of any kind that sees only a
+window of radius $r$ is $\E[a_i\mid x_{i-r},\dots,x_{i+r}]$, computable by sum-product on
+the sub-chain, and at radius $4$ its pooled error is $\audLocFloorrfourRhozeropeightfive$
+against the head's $\baseWindowD$ (\cref{app:audit}, \cref{fig:locality}). Given enough
+clean sequences the networks pass the second-order floor, $\baseBelowFloorND$ of six
+sitting below $\baseLmmseD$ at $\nseq=2048$ (\cref{prop:lmmse}); nothing intrinsic holds
+them at second order. The structured estimator is ahead at every size nonetheless,
+$\capEmeightD$ against $\baseBestD$ at $\nseq=2048$, a paired factor $\baseRatioBestD$
+($[\baseRatioBestDlo,\baseRatioBestDhi]$, $\baseWinsBestD$ of $\baseSeeds$ seeds). That
+factor is an upper bound on the advantage at this interface, since the largest networks
+were still improving when their ladder ended ($\baseAtCapTransformerD\%$ of the
+transformer cells at the last rung), and it is not information-matched: the networks see
+clean sequences and a fresh corruption at every step, EM--BP one noised view per sequence
+and no clean chain at all.
+
+\paragraph{The comparison at matched information.}
+Interface~C is EM--BP's own: one noised view per sequence split across the twelve levels,
+no clean chain, and, since the true score is unavailable for selection there, the
+checkpoint chosen on the implicit score-matching objective of a held-out noisy bundle.
+Trained by implicit score matching on exactly that bundle, the \matchedBestArchD{} reaches
+$\matchedBestD$ at $\nseq=2048$ against EM--BP's $\capEmeightD$, a paired factor
+$\matchedRatioBestD$ ($[\matchedRatioBestDlo,\matchedRatioBestDhi]$, $\matchedWinsD$ of
+$\baseSeeds$ seeds); the transformer reaches $\matchedIsmoneviewTransformerD$. Under
+interface~B, the clean sequence supplied as a regression target but with one fixed
+corruption per sequence, the same head reaches $\matchedFixedD$, a factor
+$\matchedFixedRatioD$: even given strictly more than EM--BP sees, one corruption per
+sequence is not enough. The factor that remains at equal information is what the
+factorisation and the exact E-step are worth, and it is larger than the factor at the
+standard interface, not smaller. EM--BP's own selection needs no true score either:
+choosing its iteration count by held-out one-view log-evidence gives $\audSelEvidenceA$
+against $\audSelOracleA$ with oracle validation at $\nseq=32$, where the rung matters
+most, the two rules agreeing in $\audSelSameA$ of $\audSelNA$ seeds (\cref{app:audit}).
+
+\IfFileExists{sections/regime-baselines-numbers.tex}{%
+%% E14 (drafted on the eight-seed orientation table of 21 Sep; every sentence below is to be
+%% re-read against the sixteen-seed fragment before it is committed: the "smallest at rho = 0.5"
+%% and "does not collapse at L = 128" clauses are readings of the numbers, not macros).
+\paragraph{The matched comparison away from the frozen point.}
+The factor is not a property of the frozen corner. Re-running the matched comparison across
+$\corr\in\{\rbRhoLo,0.85,\rbRhoHi\}$ and $\nsites\in\{\rbLenLo,\rbLenHi\}$, with the networks
+re-screened inside each regime and $\rbSeeds$ seeds per cell (\cref{app:regime-baselines}),
+EM--BP with its iteration count chosen by held-out evidence, so that no true score enters
+either arm, is ahead of the best implicit-score-matching network in all $\rbCells$ cells and
+in every seed: by a paired factor $\rbIsmRatioEvfivethirtytwo$
+[$\rbIsmRatioEvfivethirtytwolo$, $\rbIsmRatioEvfivethirtytwohi$] at $\corr=0.5$,
+$\nsites=32$, and $\rbIsmRatioEveightfivethirtytwo$
+[$\rbIsmRatioEveightfivethirtytwolo$, $\rbIsmRatioEveightfivethirtytwohi$] at the frozen point,
+consistent with the sixteen-seed $\matchedRatioBestD$ above. The factor is smallest at
+$\corr=0.5$ at both lengths, where the stationary marginal carries the most fourth-order
+structure ($\rbKurtfivethirtytwo$ against $\rbKurtninefivethirtytwo$ at $\corr=0.95$), which
+is the direction \cref{sec:theory} gives; beyond $\corr=0.85$ the two lengths part company,
+the factor rising further at $\nsites=32$ and falling back at $\nsites=128$, so we report
+the direction below $\corr=0.85$ and no trend above it. Lengthening the chain does not
+collapse the advantage ($\rbIsmRatioEvfiveonetwentyeight$ to
+$\rbIsmRatioEveightfiveonetwentyeight$ at $\nsites=128$). Given the clean sequence as a
+regression target (interface~B) the best network is still a factor
+$\rbFixedRatioEveightfivethirtytwo$ behind at the frozen point, and the factors are
+conservative throughout: the evidence-selected EM--BP selects the last rung of its ladder
+in \rbEmEvAtCapTotal{} cells, so its error there is an upper bound. Against the
+second-order floor the sweep separates two questions that coincide at the frozen
+configuration. The best network's error changes little across it
+($\rbIsmBestfiveonetwentyeight$ to $\rbIsmBestninefivethirtytwo$) while the floor falls
+steeply with $\corr$, so the network passes the floor where the floor is high
+($\rbIsmBelowFloorCells$) and not where it is low ($\rbIsmAboveFloorCells$): at
+$\corr=0.95$ it is above by $\rbIsmMinusFloorninefivethirtytwo$
+[$\rbIsmMinusFloorninefivethirtytwolo$, $\rbIsmMinusFloorninefivethirtytwohi$] at
+$\nsites=32$, against an exact radius-$8$ floor of $\audLocFloorreightRhozeropninefive$ at
+that correlation. Where the covariance carries most of the score energy, one noised view
+per sequence is not enough for a network to recover even the covariance, while the
+estimator that knows the factorisation recovers it.
+}{}%
+\IfFileExists{sections/regime-baselines-bimodal-numbers.tex}{%
+The same cell with platykurtic driving noise gives the same answer: on the symmetric
+two-component mixture, whose excess kurtosis is negative at the same covariance
+(\cref{app:oracles}), the paired factor is $\rbBimodalIsmRatioEveightfivethirtytwo$
+[$\rbBimodalIsmRatioEveightfivethirtytwolo$, $\rbBimodalIsmRatioEveightfivethirtytwohi$]
+(\cref{app:regime-baselines}). What the structure buys is fourth-order structure of either
+sign, not heavy tails.
+}{}
+\paragraph{Length extrapolation.}
+Fitted at $\nsites=32$ and evaluated against the exact score of longer chains
+(\cref{tab:length}), the EM--BP kernel holds $\lenEmbpDLthreetwo$ at $\nsites=32$ and
+$\lenEmbpDLtwofivesix$ at $256$: the law is local, so inference at any length is the same
+recursion. The convolutional and recurrent networks improve slightly, as longer chains
+have proportionally fewer boundary sites; the transformer with learned relative positions
+degrades from $\lenTransformerDLthreetwo$ to $\lenTransformerDLtwofivesix$, a failure of
+the positional encoding beyond its training length rather than of the score it learned
+\citep{press2022alibi,kazemnejad2023positional}.

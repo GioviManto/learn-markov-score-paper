@@ -1,0 +1,136 @@
+\section{The oracle ladder}
+\label{app:oracles}
+
+\begin{table}[h]
+\centering
+\caption{Schedule-pooled relative score error of the two oracles against the tree-exact
+reference, 512 chains per family at the frozen configuration. The LMMSE column is the
+floor of every second-order estimator (\cref{prop:lmmse}).}
+\begin{tabular}{lccc}
+\toprule
+family & excess kurtosis & isotropic $-\vx$ & LMMSE, true $\Sig_0$ \\
+\midrule
+Laplace & $+3$ & \isoFloorLaplace & \lmmseFloorLaplace \\
+Student-$t_5$ & $+6$ & \isoFloorStudent & \lmmseFloorStudent \\
+uniform & $-1.2$ & \isoFloorUniform & \lmmseFloorUniform \\
+bimodal & $-0.72$ & \isoFloorBimodal & \lmmseFloorBimodal \\
+Gaussian & $0$ & \isoFloorGaussian & \lmmseFloorGaussian \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The second-order floor across correlation}
+\label{app:phase}
+The frozen configuration fixes $\corr=0.85$. The price of second-order closure is a function
+of $\corr$ as well as of the driving-noise law, and this appendix reports it over
+$\corr\in\{0,0.3,0.6,0.85,0.95\}$ for five families on the twelve-level schedule, computed
+from the exact score with no estimation involved.
+The heavy-tailed family is quoted from a recomputation on the
+$(\phaseWideN,\phaseWideA)$ domain (\textsc{e07c}): on the operating grid the quadrature
+sweep of \cref{app:numerics} places its $\corr=0$ cell outside the validated envelope, one
+to two sites per bundle lying beyond the domain and pinned to its boundary. Widening the
+domain moves its pooled floor by at most $\phaseStudentMoveOperating$ from $(801,8)$ to
+$(801,12)$ and by at most $\phaseStudentMoveWide$ from $(801,12)$ to
+$(\phaseWideN,\phaseWideA)$ (\textsc{e07b}, \textsc{e07c}), and every other family by at
+most $\phaseOtherMoveWide$ between the operating and the widest grid; the other families
+are quoted from the operating grid, where they are converged.
+\IfFileExists{sections/phase-numbers.tex}{\input{body/05f-phase}}{}
+
+\section{Capacity: the previous reading, and why it is void}
+\label{app:capacity}
+An earlier study of this model compared mixture kernels of $\ncomp\in\{1,2,4,8,16\}$
+at $\nseq\in\{128,512\}$ over sixteen seeds and concluded that no capacity improved on a
+single linear-Gaussian kernel, attributing the estimator's margin over the networks to the
+Markov factorisation and its covariance alone. That sweep is void for a reason prior to
+any reading of it: its training draw re-created the random generator for every sequence,
+so every arm at every capacity and seed was fitted to a single chain of $\nsites$ sites
+(its validation and test bundles were drawn correctly). The signature is in its own
+numbers: \cref{prop:lmmse} places a correctly fitted $\ncomp=1$ kernel on the LMMSE floor,
+$\lmmseFloorLaplace$ on the Laplace chain, where \cref{sec:experiments} and all fifteen
+cells of the regime sweep land to $\regIdentMax$, and the earlier sweep's single-Gaussian
+arm scatters across a range several times wider. The stopping asymmetry that sweep also
+shows (its likelihood tolerance fired for almost every single-Gaussian cell and for no
+cell with $\ncomp\ge4$, so that the richer arms reported checkpoints far past their
+optimum) is the behaviour of \textsc{em} on one chain, not evidence about capacity in
+either direction; we had first read it as the explanation of the earlier conclusion, and
+withdraw that reading. The capacity experiment of \cref{sec:experiments} draws every
+chain independently, asserts it, and selects the checkpoint identically for every
+capacity on a per-seed validation bundle; the same defect was found and fixed in one of
+our own drivers before any of its numbers reached a page (\cref{app:protocol}).
+
+\section{Capacity across the driving-noise family}
+\label{app:family}
+\IfFileExists{sections/family-numbers.tex}{\input{body/05e-family}}{\needsdata{E02b queued}}
+
+\section{The capacity contrast across regimes}
+\label{app:regimes}
+\IfFileExists{sections/regime-numbers.tex}{\input{body/05g-regimes}}{\needsdata{E13 pending}}
+
+\section{Generation and length extrapolation: the tables}
+\label{app:tables}
+\IfFileExists{sections/generation-numbers.tex}{\input{sections/tab-generation}}{}
+\IfFileExists{sections/baseline-numbers.tex}{\input{sections/tab-length}}{}
+
+\section{The matched comparison across regimes}
+\label{app:regime-baselines}
+\IfFileExists{sections/regime-baselines-numbers.tex}{%
+\begin{table}[h]
+\centering\small
+\caption{Interface~C across correlation and length (\textsc{e14}): pooled relative score error
+of the LMMSE oracle, of EM--BP with its iteration count chosen by held-out one-view
+log-evidence (ev.) and by validation risk against the true kernel (bp), of the best network
+trained by implicit score matching on the same one-view bundle (C) and of the best network
+given the clean sequence with one fixed corruption (B), each re-screened per regime on two
+development seeds; last column the paired factor of the C network over the evidence-selected
+EM--BP with a percentile bootstrap over $\rbSeeds$ seeds. $^{\dagger n}$: $n$ cells whose
+held-out objective never improved on its first checkpoint (reported, not excluded).}
+\label{tab:regime-baselines}
+\input{sections/regime-baselines-table}
+\end{table}
+The arms and selection rules are those of \cref{sec:experiments} with two additions: the
+evidence-selected EM--BP row, which needs no true score (\cref{app:audit}), and the
+network-favourable interface~B row. A network cell is excluded from the factor only if its
+selected held-out implicit objective is not below that of the trivial score $-\vx$ on the
+same views, which is what a fit that diverged looks like on its own criterion; no cell is
+excluded ($\rbIsmDivergedTotal$ network cells fail the test), and $\rbIsmFlagTotal$ carry
+the curve-shape flag. The two EM--BP rows agree: the same rung is selected in
+\rbEmAgreeRungTotal{} cells and the largest difference in test error is
+$\rbEmAgreeMaxDiffAll$; the last rung of the ladder is selected in \rbEmAtCapTotal{}
+oracle-selected cells and \rbEmEvAtCapTotal{} evidence-selected ones, so the EM--BP error
+is an upper bound there and every factor is conservative. Against the second-order floor,
+tested per seed on the same test bundle, the best network sits below it in
+$\rbIsmBelowFloorCells$ and above it in $\rbIsmAboveFloorCells$. At the frozen point it is
+above by $\rbIsmMinusFlooreightfivethirtytwo$
+[$\rbIsmMinusFlooreightfivethirtytwolo$, $\rbIsmMinusFlooreightfivethirtytwohi$], a ratio of
+$\rbIsmOverLmmseeightfivethirtytwo$: at matched information the best network reaches the
+floor there and does not pass it, where with clean sequences and a fresh corruption at
+every step $\baseBelowFloorND$ of six architectures pass it (\cref{sec:experiments}). At
+$\corr=0.95$ the margin is $\rbIsmMinusFloorninefivethirtytwo$ against exact radius-$4$ and
+radius-$8$ floors of $\audLocFloorrfourRhozeropninefive$ and
+$\audLocFloorreightRhozeropninefive$ (\cref{app:audit}): the miss is the architecture's,
+not the window's. At the frozen point the factor is $\rbFrozenIsmRatio$ with per-seed
+factors from $\rbIsmRatioEvMineightfivethirtytwo$ to $\rbIsmRatioEvMaxeightfivethirtytwo$,
+against $\matchedRatioBestD$ with per-seed factors from $\matchedRatioMinD$ to
+$\matchedRatioMaxD$ over the sixteen seeds of \cref{sec:experiments}: the same population
+at a different seed count. The networks' error falls with $\nsites$ because each noised
+view carries proportionally more sites; so does EM--BP's, and the factor survives.
+}{\needsdata{E14 pending: the matched comparison across correlations and chain lengths}}
+
+\IfFileExists{sections/regime-baselines-bimodal-numbers.tex}{%
+\paragraph{Platykurtic driving noise (\textsc{e14b}).}
+Every matched comparison above uses the Laplace driving noise, whose excess kurtosis is
+positive, so the advantage could in principle be a statement about heavy tails. The frozen
+cell repeated with the symmetric two-component mixture, whose excess kurtosis is negative
+at the same covariance, answers it: the second-order floor is
+$\rbBimodalLmmseeightfivethirtytwo$, well below the Laplace value, because there is less
+fourth-order structure for the closure to discard; the best network, here the
+\rbBimodalIsmBestArcheightfivethirtytwo, reaches $\rbBimodalIsmBesteightfivethirtytwo$,
+close to its Laplace error, and therefore sits a factor
+$\rbBimodalIsmOverLmmseeightfivethirtytwo$ above the floor rather than at it; EM--BP
+reaches $\rbBimodalEmEveightfivethirtytwo$, a paired factor
+$\rbBimodalIsmRatioEveightfivethirtytwo$
+[$\rbBimodalIsmRatioEveightfivethirtytwolo$, $\rbBimodalIsmRatioEveightfivethirtytwohi$]
+in $\rbBimodalIsmWinsEveightfivethirtytwo$ of $\rbBimodalSeeds$ seeds, a factor indistinguishable
+from the Laplace factor at the same point. The estimator's margin is the fourth-order
+structure the covariance twin leaves behind, of either sign.
+}{}

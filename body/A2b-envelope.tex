@@ -1,0 +1,65 @@
+%% Included by A2-numerics.tex only when sections/grid-envelope.tex exists (E11 done).
+The validation above fixes the grid at the frozen configuration. Every other
+configuration this paper touches---the other driving-noise families, the correlations of
+the family ladder, the longer chains of the length study---inherits it, so we measured
+it instead: $\gridFamilies$ driving-noise families $\times$ $\gridRhos$ correlations
+$\times$ twelve levels $\times$ $\gridSeeds$ seeds, seven candidate grids against a
+reference at $\ngrid=\gridRefN$, $\halfwidth=\gridRefA$.
+
+At the frozen configuration the operating grid is comfortable: the pooled drift of the
+posterior-mean field is $\gridFrozenDrift$, the worst single level $\gridFrozenDriftWorstLevel$,
+and $\gridFrozenBoundary$ of the belief mass lies in the outermost $2\%$ of the domain.
+Nothing reported at that configuration is in question.
+
+Over the whole sweep the picture is different, and the difference is instructive: at
+half-width $\gridHalfWidth$ the worst-case drift is \emph{flat} in the number of grid
+points, $\gridFlatLo$ at $\ngrid=\gridFlatNlo$ and $\gridFlatHi$ at
+$\ngrid=\gridFlatNhi$, and falls only when the domain widens---$\gridWiderADrift$ at
+$(\gridWiderAN,\gridWiderAA)$ and $\gridWiderBDrift$ at $(\gridWiderBN,\gridWiderBA)$.
+That is the signature of truncation rather than of quadrature, and it means refinement
+in $\ngrid$ alone, which is what refinement has meant in this literature, cannot fix it.
+The binding cell is the $\gridWorstFamily$ family at $\corr=\gridWorstRho$, and the
+mechanism is a handful of sites: among the $8192$ sites of each seed's bundle,
+$\audExceedCounts$ lie beyond $|a|=\gridHalfWidth$ (the analytic expectation is
+$\audExceedExpected$), the largest at $|a|=\audExceedMax$. A site beyond the domain has
+its posterior pinned to the boundary on every grid, which is the ``belief mass
+$\gridWorstBoundary$ in the outer $2\%$'' of the diagnostic, and at the lowest level its
+score error alone is the drift of $\gridWorstDrift$. For a polynomial tail the
+expected exceedance count is Poisson with mean $\nseq\nsites\,P(|a|>\halfwidth)$, which no
+finite domain makes zero: $\audExceedExpectedTwelve$ per $8192$ sites at
+$\halfwidth=12$, $\audExceedExpectedSixteen$ at $\halfwidth=16$. Per replicate of the
+family ladder of \cref{app:phase} ($\excChains$ chains of $\excSites$ sites) the same
+expectation is $\excStudentRhozeroAeight$ sites at $\halfwidth=8$,
+$\excStudentRhozeroAtwelve$ at $12$ and $\excStudentRhozeroAsixteen$ at $16$ for the
+Student-$t_5$ chain at $\corr=0$, and below $\excLaplaceRhozeroAeight$ for every other
+family and correlation; that ladder therefore quotes the heavy-tailed family from a
+recomputation on the $(\phaseWideN,\phaseWideA)$ domain, where its pooled floor has
+stopped moving (\textsc{e07b}, \textsc{e07c}); no claim in the body rests on it. The same
+consideration governs the closure panel of \cref{fig:theory}: beyond $t\approx3$ the
+reference on the $(801,8)$ grid carries the tail of the \emph{truncated} prior, and the
+heavy-tailed families depart from the constant for that reason alone; on
+$(3201,32)$ they reach it (\cref{app:audit}).
+
+The envelope also has to cover the longer chains of the length study and of the regime
+comparison, and it does (\textsc{e11b}: the same sweep at $\nsites\in\{\gridLenList\}$,
+$\gridLenSeeds$ seeds). On the operating grid the worst pooled drift over the sweep is
+$\gridLenWorstDriftThirtytwo$ at $\nsites=32$, $\gridLenWorstDriftSixtyfour$ at $64$ and
+$\gridLenWorstDriftOnetwentyeight$ at $128$, a factor of at most $\gridLenWorstRatioMax$,
+and at the frozen configuration $\gridLenFrozenDriftThirtytwo$, $\gridLenFrozenDriftSixtyfour$
+and $\gridLenFrozenDriftOnetwentyeight$: the per-site quadrature error does not compound along
+the chain, because the messages are renormalised at every site.
+
+A second observation from the same sweep cuts the other way. The column-mass defect of
+the discretised kernel, $\max_j|\sum_k \kernel(\gridpt{k}\mid \gridpt{j})w_k-1|$, grows
+with correlation, from $\gridColMassLo$ at $\corr=\gridColMassLoRho$ to $\gridColMassHi$
+at $\corr=\gridColMassHiRho$, and the reason is again the domain and not the spacing: the
+maximum sits in the outermost columns, where a kernel centred at $\corr\gridpt{j}$ with
+$|\gridpt{j}|$ near $\halfwidth$ loses the part of its mass beyond the domain, so the
+defect is flat in $\ngrid$, falls as the domain widens, and is at machine precision in the
+interior columns at every $\corr$. It is not predictive of the error: at
+$\corr=\gridColMassHiRho$ the drift is $\gridColMassDriftHiRho$, because the recursion
+renormalises every message and the affected columns carry almost no belief. We report it
+as a diagnostic and not as an error bar. The uniform family is the one exception to the
+quadrature picture: its kernel is discontinuous, the trapezoidal rule is first-order on
+it, and its worst-level drift is largest on the coarsest spacing rather than the
+narrowest domain.
