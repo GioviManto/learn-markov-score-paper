@@ -1,0 +1,15 @@
+A diffusion model is a denoiser trained at every noise level. When the data are Markov sequences, such as time series
+or one-dimensional physical fields, this structure fixes the form of the optimal denoiser, and we ask how much a
+denoiser gains from it. The Gaussian chain shows that the structure is not inherited by the score: the precision
+matrix of the noisy data, tridiagonal for clean data, becomes dense at intermediate noise, so locality cannot be
+imposed on the denoiser itself. It survives in the posterior instead. A Markov chain observed through independent
+noise is a tree, so belief propagation (BP) gives the exact posterior mean, and hence the exact score, at every noise
+level. Learning then reduces to learning the transition kernel, which we do by expectation--maximisation with BP as
+the E-step, from noisy sequences alone and without differentiating through BP. On a non-Gaussian (Laplace) chain the
+learned kernel gives scores 2.1 to 2.8 times more accurate than the best of six neural denoisers trained on the same
+data, and 5.8 to 9.9 times more accurate than a multilayer perceptron. We measure how quickly this advantage
+disappears when the data stop being Markov. On the stochastic Allen--Cahn field, every kernel family whose conditional
+law depends on the current state beats the best network in every cell, and the learned kernel recovers the
+temperature to within one percent.
+% src: 2.1-2.8 / 5.8-9.9: reports/paper-figures/README.md (E02a em_bp vs E03 networks, paired, 16 seeds, N=32..2048)
+% src: Allen-Cahn: ~/Code/Thesis/jerome-call-2026-10-29-slide15.md (E33/E43 frozen rows); temperature: E33 (Theta-hat/Theta 0.9995-1.0068)

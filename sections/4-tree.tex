@@ -1,0 +1,38 @@
+\section{A noisy Markov chain is a tree}
+\label{sec:tree}
+
+\begin{figure}[t]
+  \centering
+  \input{figures/fig_factor_graph.tikz}
+  \caption{\note{Factor graph of $p(a\mid x)$: kernel factors between neighbours, noise factors $\ell_t$ at each
+  site; no loop, so BP is exact. Messages $\mu_\to$, $\mu_\leftarrow$. Slide 7.}}
+  \label{fig:factor-graph}
+\end{figure}
+
+\note{J\'er\^ome (49:16): put the factor graph in, it shows at a glance that the model is a tree, which is not obvious
+even to statistical physicists. BP at the level of his hierarchical-filtering paper \S2.4, ``maybe a bit more
+detailed'' (48:37); BP on the grid is ``a bit detailed'' (50:20), so the grid recursions go to Appendix~A. Solve the
+exactly known case here (12:01).}
+
+\note{BP: forward and backward messages, marginal $\propto\mu_\to\mu_\leftarrow$, mean $\to$ score by
+\cref{eq:tweedie}; any kernel, any $t$. On a grid: $N_g=401$ points, matrix--vector products, $O(LN_g^2)$.
+Grid exactness: round-off on the Gaussian chain for $t\geq0.05$ (Appendix~A); about $10^{-5}$ on the Laplace chain.}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics{fig_laplace}
+  \caption{\note{(a) Laplace vs Gaussian innovation, same variance. (b, c) Score of the middle site against $x_k$ at
+  $t=0.05$ and $t=1$: saturates at small noise, linear at large noise. Slide 6.}}
+  \label{fig:laplace}
+\end{figure*}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics{fig_closure}
+  \caption{\note{Laplace chain, true kernel: the best linear denoiser (Gaussian closure / Kalman) against grid BP's
+  own error. Slide 8.}}
+  \label{fig:closure}
+\end{figure}
+
+\note{Numbers: closure error median $0.27$ at $t=0.05$ ($0.38$ at $t=0.02$, $8\times10^{-6}$ at $t=3$) against grid
+error $1.1\times10^{-5}$ --- thesis \texttt{tools/data/ch07\_metrics.csv}.}

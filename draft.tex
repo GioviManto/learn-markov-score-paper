@@ -1,0 +1,53 @@
+%% REFERENCE DRAFT (written 31 Oct 2026 from the 29 Oct call with Jerome). Read draft.pdf, or set
+%% Menu -> Main document -> draft.tex in Overleaf. The paper you write is main.tex; this file is not meant to be edited
+%% into the final version.
+%% Every number carries a "% src:" comment naming where it was read. Orange [pending: ...] marks a result still on the
+%% cluster (E55, E56) or not yet run.
+\documentclass{article}
+\input{preamble}
+
+\icmltitlerunning{Learn the Kernel, Not the Score}
+
+\begin{document}
+
+\twocolumn[
+\icmltitle{Learn the Kernel, Not the Score:\\ Belief-Propagation Denoisers for Markov Sequences}
+
+\begin{icmlauthorlist}
+  \icmlauthor{Giovanni Mantovani}{boc}
+  \icmlauthor{J\'er\^ome Garnier-Brun}{boc}
+  \icmlauthor{Marc M\'ezard}{boc}
+\end{icmlauthorlist}
+\icmlaffiliation{boc}{Department of Computing Sciences, Bocconi University, Milan, Italy}
+\icmlcorrespondingauthor{Giovanni Mantovani}{giovannimantovani02@gmail.com}
+\icmlkeywords{diffusion models, belief propagation, expectation maximisation, Markov chains, denoising}
+\vskip 0.3in
+]
+
+\printAffiliationsAndNotice{}
+
+\begin{abstract}
+\input{draft/0-abstract}
+\end{abstract}
+
+\input{draft/1-introduction}
+\input{draft/2-setting}
+\input{draft/3-gaussian}
+\input{draft/4-tree}
+\input{draft/5-laplace}
+\input{draft/6-allen-cahn}
+\input{draft/7-discussion}
+
+\section*{Impact statement}
+This paper studies how much a diffusion model's denoiser can gain from knowing that its data are Markov, on synthetic
+sequences and a simulated physical field with known ground truth. We see no ethical concern specific to it.
+
+\bibliography{references}
+\bibliographystyle{icml2026}
+
+\newpage
+\appendix
+\onecolumn
+\input{draft/A-appendix}
+
+\end{document}

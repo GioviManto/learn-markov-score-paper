@@ -1,128 +1,43 @@
-%% ICML submission. Provisional format: the ICML 2026 kit (paper/style/icml2026), to be
-%% swapped for the 2027 kit when released -- change the three symlinks in paper/ and the
-%% \usepackage line below; nothing else in this file depends on the kit version.
-%% Page geometry, fonts and spacing are the kit's; they are never altered here.
+%% THE PAPER. Write here: sections/*.tex. Grey [notes] say what goes where (from the 29 Oct call with Jerome) and
+%% disappear with \shownotesfalse below. The reference draft is draft.tex / draft.pdf; nothing here depends on it.
 \documentclass{article}
+\input{preamble}
+% \shownotesfalse
 
-\usepackage{microtype}
-\usepackage{graphicx}
-\usepackage{booktabs}
-\usepackage{array}
-\usepackage{multirow}
-\usepackage{capt-of}
-\usepackage{xcolor}
-%% Figure palette, kept identical to the matplotlib house style in tools/figstyle.py so the
-%% TikZ schematic and the plotted figures cannot drift apart.
-\definecolor{fgblue}{HTML}{2A78D6}   % CAT[0]
-\definecolor{fgink}{HTML}{52514E}    % INK2
-\definecolor{fgmuted}{HTML}{8A8985}  % MUTED
-\definecolor{fgfill}{HTML}{E1E0DC}   % observed-node fill
-\usepackage{hyperref}
-\usepackage{tikz}
-\usetikzlibrary{calc,arrows.meta,positioning}
-\newcommand{\theHalgorithm}{\arabic{algorithm}}
-
-% Submission: anonymous. Camera-ready: \usepackage[accepted]{icml2026}.
-\usepackage{icml2026}
-
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{mathtools}
-\usepackage{amsthm}
-\usepackage[capitalize,noabbrev]{cleveref}
-
-\theoremstyle{plain}
-\newtheorem{theorem}{Theorem}
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{corollary}[theorem]{Corollary}
-\theoremstyle{definition}
-\newtheorem{assumption}[theorem]{Assumption}
-% cleveref on Overleaf (TeX Live 2025) has no default name for this type; without it every \cref{ass:...} warns
-\crefname{assumption}{Assumption}{Assumptions}
-\theoremstyle{remark}
-\newtheorem{remark}[theorem]{Remark}
-
-\graphicspath{{figures/}}
-\input{notation}
-\newcommand{\kfour}{\kappa_4}
-\newcommand{\Sgauss}{S^{\mathrm{G}}}
-\newcommand{\tstar}{t_\ast}
-\newcommand{\lmax}{\lambda_{\max}}
-\newcommand{\Hen}[1]{\mathrm{He}_{#1}}
-\newcommand{\Frob}[1]{\lVert #1 \rVert_{F}}
-
-%% Generated number macros: every quantitative statement in the body is one of these.
-\input{sections/theory-numbers}
-\input{sections/oracle-numbers}
-\IfFileExists{sections/capacity-numbers.tex}{\input{sections/capacity-numbers}}{}
-\IfFileExists{sections/family-numbers.tex}{\input{sections/family-numbers}}{}
-\IfFileExists{sections/learning-numbers.tex}{\input{sections/learning-numbers}}{}
-\IfFileExists{sections/baseline-numbers.tex}{\input{sections/baseline-numbers}}{}
-\IfFileExists{sections/generation-numbers.tex}{\input{sections/generation-numbers}}{}
-\IfFileExists{sections/refinement-numbers.tex}{\input{sections/refinement-numbers}}{}
-\IfFileExists{sections/phase-numbers.tex}{\input{sections/phase-numbers}}{}
-\IfFileExists{sections/misspec-numbers.tex}{\input{sections/misspec-numbers}}{}
-\IfFileExists{sections/regime-numbers.tex}{\input{sections/regime-numbers}}{}
-\IfFileExists{sections/grid-envelope.tex}{\input{sections/grid-envelope}}{}
-\IfFileExists{sections/gaussian-sanity-numbers.tex}{\input{sections/gaussian-sanity-numbers}}{}
-\IfFileExists{sections/audit-numbers.tex}{\input{sections/audit-numbers}}{}
-\IfFileExists{sections/exceedance-numbers.tex}{\input{sections/exceedance-numbers}}{}
-\IfFileExists{sections/regime-baselines-numbers.tex}{\input{sections/regime-baselines-numbers}}{}
-\IfFileExists{sections/regime-baselines-bimodal-numbers.tex}{\input{sections/regime-baselines-bimodal-numbers}}{}
-\input{sections/efficiency-numbers}
-\input{sections/structured-numbers}
-\input{sections/screening-numbers}
-\input{sections/convergence-numbers}
-\input{sections/rate-numbers}
-\input{sections/structured-aggregation-numbers}
-\input{sections/grid-convergence-numbers}
-\providecommand{\provenanceappendix}{\cref{app:protocol}}
-% Figures drawn for one column (tools/figstyle.COL_W = 3.25 in) keep that width in the one-column
-% appendix, where \columnwidth is the full text width and would double them.
-\newlength{\figcolw}\setlength{\figcolw}{3.25in}
-\providecommand{\headlinetable}{the archival comparison (\cref{app:additional})}
-\providecommand{\structuredtable}{the archival structured comparison (\cref{app:additional})}
-
-\icmltitlerunning{What Survives Diffusion Noise}
+\icmltitlerunning{Short title}
 
 \begin{document}
 
 \twocolumn[
-\icmltitle{What Survives Diffusion Noise?\\
-  Exact Scores, Order-by-Order Information Decay, and Transition Learning\\
-  in Non-Gaussian Markov Chains}
+\icmltitle{Title}
 
-\icmlsetsymbol{equal}{*}
 \begin{icmlauthorlist}
-  \icmlauthor{Anonymous Authors}{anon}
+  \icmlauthor{Giovanni Mantovani}{boc}
+  \icmlauthor{J\'er\^ome Garnier-Brun}{boc}
+  \icmlauthor{Marc M\'ezard}{boc}
 \end{icmlauthorlist}
-\icmlaffiliation{anon}{Anonymous Institution}
-\icmlcorrespondingauthor{Anonymous}{anonymous@example.org}
-\icmlkeywords{diffusion models, score matching, belief propagation, Markov chains, Fisher information, Hermite polynomials}
+\icmlaffiliation{boc}{Department of Computing Sciences, Bocconi University, Milan, Italy}
+\icmlcorrespondingauthor{Giovanni Mantovani}{giovannimantovani02@gmail.com}
+\icmlkeywords{diffusion models, belief propagation, expectation maximisation, Markov chains}
 \vskip 0.3in
 ]
 
 \printAffiliationsAndNotice{}
 
 \begin{abstract}
-\input{body/00-abstract}
+\input{sections/0-abstract}
 \end{abstract}
 
-\input{body/01-introduction}
-\input{body/02-setup}
-\input{body/03-theory}
-\input{body/04-learning}
-\input{body/05-experiments}
-\input{body/06-related}
-\input{body/07-conclusion}
+\input{sections/1-introduction}
+\input{sections/2-setting}
+\input{sections/3-gaussian}
+\input{sections/4-tree}
+\input{sections/5-laplace}
+\input{sections/6-allen-cahn}
+\input{sections/7-discussion}
 
 \section*{Impact statement}
-This paper presents theoretical and empirical work on how diffusion noise erases
-statistical structure and on learning structured dynamics from noised data, evaluated on
-synthetic models with known ground truth. Its societal consequences are those of a better
-understanding of generative diffusion models in general; we see no specific ethical
-concern that requires discussion here.
+\note{Required by ICML, not counted in the page limit. Two sentences.}
 
 \bibliography{references}
 \bibliographystyle{icml2026}
@@ -130,10 +45,6 @@ concern that requires discussion here.
 \newpage
 \appendix
 \onecolumn
-\input{body/A1-proofs}
-\input{body/A2-numerics}
-\input{body/A3-protocol}
-\input{body/A4-additional}
-\input{body/A5-audit}
+\input{sections/A-appendix}
 
 \end{document}
