@@ -1,0 +1,38 @@
+\section{Introduction}
+\label{sec:intro}
+
+A diffusion model generates data by reversing a noising process, and the only object it has to learn is a denoiser:
+for every noise level $t$, the best guess of the clean data $a$ given a noisy version $x$
+\cite{sohl2015deep,ho2020denoising,song2021scorebased}. By Tweedie's formula the score that drives the reverse
+process is an affine function of the posterior mean $\E[a\mid x]$ \cite{robbins1956empirical,efron2011tweedie}, so
+learning the score and learning the denoiser are the same problem. Neural networks solve it from samples, at every
+$t$ at once, and what they learn about the structure of the data is an active question
+\cite{kadkhodaie2024generalization,kamb2024analytic,biroli2024dynamical}.
+
+We study this question on data whose structure is known exactly: first-order Markov sequences. A Markov sequence is
+fixed by its transition kernel $K(a_{k+1}\mid a_k)$. This covers a wide class of data with a direction or a
+locality, from time series of causal processes to one-dimensional physical fields with nearest-neighbour interactions,
+whose stationary law is a chain. The question is what a denoiser gains from knowing that the data are Markov, and how
+it should use that knowledge.
+
+The answer has three parts, which organise the paper.
+First, the structure is \emph{not} in the score. For the Gaussian chain the score is linear and its matrix is
+tridiagonal at $t=0$, but diffusion fills it in: at intermediate noise every site depends on every other
+(\cref{sec:gaussian}). A denoiser constrained to be local, by a tridiagonal fit or a small receptive field, has an
+error floor that no amount of data removes.
+Second, the structure \emph{is} in the posterior. A Markov chain observed through independent noise is a tree, so
+belief propagation (BP) computes $\E[a\mid x]$ exactly, for any kernel and at every $t$ (\cref{sec:tree}).
+Third, learning the denoiser therefore reduces to learning the kernel. We do this by expectation--maximisation (EM),
+with BP as the E-step, from noisy sequences only (\cref{sec:laplace}). BP enters the learning only through expected
+transition counts, so the kernel can be any differentiable family, a small neural network included, without
+differentiating through BP.
+
+We test this on a non-Gaussian Markov chain with Laplace innovations, the simplest case where the exact score is not
+linear, against six neural denoisers trained on the same data, and we measure how the comparison changes as the data
+depart from the Markov property (\cref{sec:laplace}). We then apply it to the stochastic Allen--Cahn field, where the
+choice of kernel family matters (\cref{sec:allen-cahn}).
+
+\note{Related work in one paragraph here or in Sec.~7: HMM and Kalman EM \cite{baum1970,shumway1982em}; diffusion
+from corrupted data with EM \cite{daras2023ambient,rozet2024learning,bai2024em}; BP and transformers on structured
+data \cite{garnierbrun2024transformers}; analytic denoisers \cite{kamb2024analytic}. J\'er\^ome will help with the
+literature.}
