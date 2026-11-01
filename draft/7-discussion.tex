@@ -1,0 +1,25 @@
+\section{Discussion}
+\label{sec:discussion}
+
+For Markov sequences, the structure that a diffusion model's denoiser could exploit is not visible in the score,
+which diffusion makes non-local, but in the posterior, which stays a tree. Belief propagation computes the exact score
+from the transition kernel at every noise level, and EM learns the kernel from noisy data with BP as its E-step. What
+has to be learned is then a function of two variables, not a map from $\mathbb{R}^L$ to $\mathbb{R}^L$ for every
+$t$, and on the Laplace chain this gives a more accurate score than any of the six networks we trained, with fewer
+parameters and fewer updates. The kernel family matters: on the Allen--Cahn field a family that cannot represent the
+state dependence of the kernel is no better than a linear denoiser, while every family that can is better than the
+networks.
+
+\paragraph{Limits.} The method needs the first-order Markov property, and \cref{fig:nonmarkov} measures what violating
+it costs. Higher orders can be handled by running BP on a state made of several consecutive sites. Each site carries
+one number here: a vector of dimension $d$ would need a grid of $\Ng^d$ points, and other representations of the
+messages (particles, mixtures, low-rank) would be needed. The index set must be a tree: on a two-dimensional lattice BP
+is no longer exact. The grid costs $O(L\Ng^2)$ per sequence, and it limits how small $t$ can be.
+\note{Mezard's defence questions belong here: (i) longer chains: BP's cost is linear in $L$ and the kernel does not
+depend on $L$ (E03 length test); (ii) what this says about computing scores for diffusion models in general: learn the
+local law and infer globally, a hybrid where a network handles what is not Markov.}
+
+\paragraph{Related work.} \note{EM for hidden Markov models and state-space models \cite{baum1970,shumway1982em,cappe2005};
+diffusion models trained from corrupted data with EM \cite{daras2023ambient,rozet2024learning,bai2024em}; BP and
+hierarchical data \cite{garnierbrun2024transformers}; analytic and structured denoisers
+\cite{kamb2024analytic,kadkhodaie2024generalization}.}

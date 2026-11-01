@@ -1,0 +1,18 @@
+\section{Setting}
+\label{sec:setting}
+
+\note{Half a column. Only what the rest needs: the chain $p_0(a)=\mu(a_1)\prod_kK(a_{k+1}\mid a_k)$, same kernel at
+every site (J\'er\^ome asked, 14:26: say a site-dependent kernel also works); OU noise
+$x_k=e^{-t}a_k+\sqrt{\Delta_t}\,\xi_k$; Tweedie, score $=(e^{-t}\E[a\mid x]-x)/\Delta_t$; the Gaussian and the Laplace
+chain with the same covariance ($\alpha=0.85$, $L=32$); the relative score error pooled over twelve levels
+$t\in[0.05,3]$.}
+
+\begin{equation}
+  p_0(a)=\mu(a_1)\prod_{k=1}^{L-1}K(a_{k+1}\mid a_k)
+  \label{eq:chain}
+\end{equation}
+
+\begin{equation}
+  S_t(x)_k=\frac{e^{-t}\,\E[a_k\mid x]-x_k}{\Delta_t}
+  \label{eq:tweedie}
+\end{equation}

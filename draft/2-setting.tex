@@ -1,0 +1,35 @@
+\section{Setting}
+\label{sec:setting}
+
+\paragraph{Data.} A clean sequence $a=(a_1,\dots,a_L)$ has one real number per site and is a first-order Markov
+chain,
+\begin{equation}
+  p_0(a)=\mu(a_1)\prod_{k=1}^{L-1}K(a_{k+1}\mid a_k).
+  \label{eq:chain}
+\end{equation}
+We take the chain stationary with unit variance, so the same kernel $K$ acts at every site. Nothing below needs this:
+a site-dependent kernel changes the bookkeeping, not the method.
+
+\paragraph{Noise and score.} We noise with the Ornstein--Uhlenbeck process, the variance-preserving diffusion of
+\cite{song2021scorebased} at constant rate:
+$x_k=e^{-t}a_k+\sqrt{\Dt}\,\xi_k$ with $\Dt=1-e^{-2t}$ and independent $\xi_k\sim\Normal(0,1)$. The score of the
+noisy law is, by Tweedie's formula,
+\begin{equation}
+  S_t(x)_k=\nabla_{x_k}\log p_t(x)=\frac{e^{-t}\,\E[a_k\mid x]-x_k}{\Dt},
+  \label{eq:tweedie}
+\end{equation}
+so a denoiser and a score model are the same object, and we compare methods by the score they produce.
+
+\paragraph{Two chains.} The \emph{Gaussian chain} is $a_{k+1}=\alpha a_k+\sqrt{1-\alpha^2}\,\eta_k$ with Gaussian
+$\eta_k$. The \emph{Laplace chain} has the same $\alpha$ and Laplace innovations of the same variance,
+$\varepsilon_k\sim\mathrm{Laplace}(0,b)$ with $2b^2=1-\alpha^2$. The two have the same covariance, so every linear
+denoiser treats them identically; any gain on the Laplace chain comes from its non-Gaussian structure alone. We use
+$\alpha=0.85$ and $L=32$.
+
+\paragraph{Error.} We report the relative score error
+\begin{equation}
+  e=\Big(\sum\lVert \hat S_t(x)-S_t^\star(x)\rVert^2\Big/\sum\lVert S_t^\star(x)\rVert^2\Big)^{1/2},
+  \label{eq:error}
+\end{equation}
+where the sums run over test sequences, sites and twelve noise levels log-spaced from $t=0.05$ to $t=3$, and
+$S^\star_t$ is the exact score. The error is $0$ for the exact score and $1$ for the zero estimate.
