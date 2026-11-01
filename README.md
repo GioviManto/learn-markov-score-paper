@@ -4,11 +4,29 @@
 |---|---|
 | `main.tex` + `sections/` | **The paper you write.** Overleaf compiles `main.tex`. Every section has its heading, its figures in place, and grey `[notes]` saying what goes there (from the call, with transcript times) and which numbers are available, with their sources. |
 | `draft.tex` + `draft/` | A reference draft of the whole paper, same structure and figures. To read it: Overleaf Menu → Main document → `draft.tex` (switch back afterwards). Every number has a `% src:` comment. Not meant to become the final text. |
-| `preamble.tex` | Shared by both: ICML 2026 kit (`preprint` option: names shown, "Preprint" footer), packages, notation, `\note{}` and `\pending{}`. |
+| `preamble.tex` | Shared by both: ICML 2026 kit, packages, notation, `\note{}` and `\pending{}`. Holds the one anonymity switch (below). |
 | `figures/` | Every figure, drawn at its printed size. |
 | `references.bib` | The old paper's 157 entries; add new ones here. |
 | `icml2026.sty`, `icml2026.bst`, `fancyhdr.sty` | The ICML 2026 kit (provisional until the venue is decided). |
 | `old/` | The 6 Oct ICML paper, kept for reference. Not compiled, nothing points to it; delete it when you no longer need it. |
+
+## Anonymous or named
+The PDF is **anonymous by default** (ICML is double-blind): "Anonymous Authors", no affiliation, no email, PDF author
+field anonymised. The names stay in `main.tex`; the style hides them. The switch is one line in `preamble.tex`:
+
+| build | line in `preamble.tex` |
+|---|---|
+| ICML submission | `\usepackage{icml2026}` (current) |
+| arXiv preprint | `\usepackage[preprint]{icml2026}`: names, Bocconi affiliation, email, footer "Preprint. <date>" |
+| camera-ready | `\usepackage[accepted]{icml2026}` |
+
+For the submission also put `\shownotesfalse` at the top of `main.tex`: the grey notes mention Jérôme, Mézard and
+the thesis. With notes hidden the PDF contains no name.
+
+**arXiv publishes the LaTeX source, comments included.** Before uploading: switch to `[preprint]`, remove `draft/`,
+`draft.tex` and `old/`, and strip the `%` comments (they name internal files and runs), e.g. with
+`arxiv_latex_cleaner`. ICML allows a non-anonymous arXiv version during review; check the ICML 2027 call for the
+current wording.
 
 ## Writing aids
 - `\note{...}`: grey guidance text. `\shownotesfalse` (top of `main.tex`) hides every note.

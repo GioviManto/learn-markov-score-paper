@@ -13,9 +13,11 @@
 \usetikzlibrary{arrows.meta,calc,positioning}
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
 
-% preprint: author names shown, footer "Preprint. <date>" (arXiv first, venue later).
-% Anonymous submission: \usepackage{icml2026}.  Camera-ready: \usepackage[accepted]{icml2026}.
-\usepackage[preprint]{icml2026}
+% ONE switch for who sees the authors. The names stay in main.tex either way; the style hides them.
+%   ICML submission (double-blind):  \usepackage{icml2026}            "Anonymous Authors", no affiliation or email
+%   arXiv preprint (names shown):    \usepackage[preprint]{icml2026}  footer "Preprint. <date>"
+%   camera-ready after acceptance:   \usepackage[accepted]{icml2026}
+\usepackage{icml2026}
 
 \usepackage{amsmath}
 \usepackage{amssymb}

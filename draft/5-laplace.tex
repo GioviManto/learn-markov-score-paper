@@ -59,7 +59,7 @@ needed for training.
 \end{figure*}
 
 \Cref{fig:families} shows what different families learn.
-The family used in our earlier work is a mixture of $C=8$ Gaussians for the innovation,
+A first choice is a mixture of $C=8$ Gaussians for the innovation,
 $\Kt(a'\mid a)=\sum_c\pi_c\Normal(a'-\alpha a;\nu_c,s_c^2)$, with 25 parameters and an almost closed-form M-step. It
 learns the coefficient $\alpha$ to within $0.1\%$ from $N=512$ sequences, but it can only approximate the kink by
 stacking Gaussians, and the excess kurtosis of its innovation stays $6$ to $25\%$ off (\cref{app:em}).
