@@ -1,14 +1,53 @@
-\section{BP on a grid}
+\section{Belief propagation on a grid}
 \label{app:bp}
 
-\note{Grid $g_i=-A+(i-1)h$, $A=8$, $\Ng=401$, $h=0.04$, trapezoid weights $w_i$; kernel matrix
-$K_{ij}=K(g_i\mid g_j)$ (arrival $i$, origin $j$); $\ell_k(i)=\ell_t(x_k\mid g_i)$. The two sweeps, the posterior
-mean, the pair posteriors and the log-likelihood from the forward normalisers.}
-\begin{gather*}
-  f_1=\mu\odot\ell_1,\qquad f_k\propto\ell_k\odot K(w\odot f_{k-1});\qquad
-  \beta_L=1,\qquad \beta_k\propto K^{\top}(w\odot\ell_{k+1}\odot\beta_{k+1});\\
-  \E[a_k\mid x]\approx\frac{\sum_i w_i g_i f_k(i)\beta_k(i)}{\sum_i w_i f_k(i)\beta_k(i)}.
-\end{gather*}
+\paragraph{Discretisation.} Every message is represented on $\Ng$ equispaced points $g_i=-A+(i-1)h$ of $[-A,A]$,
+$h=2A/(\Ng-1)$, with trapezoid weights $w_i$ ($w_i=h$ inside, $h/2$ at the two ends). We use $A=8$ and $\Ng=401$, so
+$h=0.04$, for every non-Gaussian experiment. The kernel becomes the matrix $K_{ij}=K(g_i\mid g_j)$ (arrival $i$, origin
+$j$), each column normalised so that $\sum_iw_iK_{ij}=1$, and the noise factor of site $k$ becomes the vector
+$\ell_k(i)=\Normal(x_k;e^{-t}g_i,\Dt)$.
+
+\paragraph{Recursions.} With $\odot$ the elementwise product and $\mu$ the initial law on the grid, the forward sweep
+is
+\begin{equation}
+  \tilde f_1=\mu\odot\ell_1,\qquad
+  \tilde f_k=\ell_k\odot K\,(w\odot f_{k-1}),\qquad
+  c_k=\sum_iw_i\tilde f_k(i),\qquad f_k=\tilde f_k/c_k ,
+\end{equation}
+and the backward sweep is
+\begin{equation}
+  \beta_L=\mathbf 1,\qquad
+  \tilde\beta_k=K^{\top}\big(w\odot\ell_{k+1}\odot\beta_{k+1}\big),\qquad
+  \beta_k=\tilde\beta_k\big/\textstyle\sum_iw_i\tilde\beta_k(i).
+\end{equation}
+The normalisations keep the messages in floating-point range and do not change the marginals. The posterior of site
+$k$ is proportional to $w\odot f_k\odot\beta_k$, so
+\begin{equation}
+  \E[a_k\mid x]\approx\frac{\sum_iw_ig_if_k(i)\beta_k(i)}{\sum_iw_if_k(i)\beta_k(i)},
+\end{equation}
+and the posterior variance follows in the same way. The pair posterior of link $k$, used by the E-step, is
+\begin{equation}
+  \xi_k(i,j)=\frac{f_k(j)\,w_j\,K_{ij}\,w_i\,\ell_{k+1}(i)\,\beta_{k+1}(i)}
+  {\sum_{i',j'}f_k(j')\,w_{j'}\,K_{i'j'}\,w_{i'}\,\ell_{k+1}(i')\,\beta_{k+1}(i')}
+  \approx\Pr(a_k=g_j,\,a_{k+1}=g_i\mid x),
+\end{equation}
+and the log-likelihood of the sequence is $\log p(x)=\sum_k\log c_k$, free from the forward sweep. A sequence costs two
+matrix--vector products per link, $O(L\Ng^2)$ in all.
+
+\paragraph{Resolution and truncation.} Two numerical errors are distinct. The spacing $h$ must resolve the noise factor,
+whose width in $a$ is $\sqrt{\Dt}\,e^{t}\simeq\sqrt{2t}$ at small $t$; we require $\sqrt{2t}\gtrsim3h$, which at
+$t=0.05$ reads $0.32$ against $0.12$. In the interior the trapezoid error scales as $h^2$: the measured residual falls by
+a factor $4.00$ per halving of $h$. The half-width $A$ sets the truncation: at $A=8$ the posterior mass in the outermost
+cells is of order $10^{-6}$.
+% src: thesis ch08 Sec. "The numerical representation" (Table em-grid: interior residual /4.00 per halving);
+%      thesis ch07 Sec. grid (exp_18 half-width sweep: boundary mass "parts in 10^6" at A = 8; resolution gate)
+
+\paragraph{Validation.} On the Gaussian chain grid BP is compared with the closed form $-Q_tx$ and reaches
+double-precision round-off for $t\geq0.05$ at $\Ng=401$ (\cref{fig:grid}, left). On the Laplace chain the kernel has a
+kink along $a'=\alpha a$, and the reference is certified by self-convergence: the scores at $\Ng=401$ and $\Ng=801$
+differ by $1.1\times10^{-5}$ in relative terms at $t=0.05$, at least three orders of magnitude below every effect we
+report.
+% src: fig_grid_gaussian (exp_01/grid_sweep_M.csv); thesis tools/data/ch07_metrics.csv grid_selfconv_med
 
 \label{app:numerics}
 \begin{figure}[h]
@@ -17,16 +56,55 @@ mean, the pair posteriors and the log-likelihood from the forward normalisers.}
   \includegraphics{fig_locality_curve}
   \caption{Left: grid BP against the exact score $-Q_tx$ on the Gaussian chain ($\alpha=0.8$) for three grid sizes;
   the dotted line is double-precision round-off. Right: coupling of $Q_t$ beyond nearest neighbours, relative to the
-  nearest-neighbour coupling of $Q_0$, against $t$; it peaks at $t^\star$.}
+  nearest-neighbour coupling of $Q_0$, against $t$ (Gaussian chain, $\alpha=0.85$); it peaks at
+  $t^\star\simeq0.075$.}
   \label{fig:grid}
 \end{figure}
 
-\section{EM: M-steps}
+\section{Expectation--maximisation}
 \label{app:em}
 
-\note{Closed forms: Gaussian AR(1) (posterior-weighted Yule--Walker), Laplace AR(1) (weighted median), mixture (ECM),
-log-linear families (concave $Q$, gradient = observed minus expected), neural energy (autograd on $Q$, GEM: a few
-Adam steps per iteration, step halved when $Q$ does not increase). Checkpoint ladder and selection rule.}
+\paragraph{Data.} Each clean training sequence is noised once. The $N$ sequences are split at random into twelve
+groups, one per noise level of the schedule, so EM sees $N$ noisy sequences in all, each at a known level. The networks
+of \cref{app:networks} instead see the clean sequences and draw fresh noise at every step.
+% src: experiments/e03_baselines.py::_one_view_groups (tags exp31-em-split / exp31-em-noise)
+
+\paragraph{Initialisation, stopping and selection.} The mixture starts from $\alpha_0=0.3$ and innovation variance
+$0.8$. EM runs to 1,200 iterations and keeps the kernel at the checkpoints $10,20,40,60,80,120,160,220,300,400,600,800$
+and $1{,}200$. The checkpoint used for testing is the one with the lowest score error on 1,024 validation sequences.
+The networks are selected by the same rule (\cref{app:networks}); both selections use the exact score of the
+validation sequences, so the comparison is fair but optimistic for both. \pending{E56 also records the selection by
+held-out likelihood, which needs no exact score.}
+% src: outputs/E02a/params_capacity.json (em_checkpoints, em_init_rho = 0.3, em_init_var = 0.8, n_val = 1024)
+
+\paragraph{M-steps.} Write $\Xi_{ij}=\sum_{d,k}\xi^{(d)}_k(i,j)$ for the expected transition counts and
+$W=\sum_{ij}\Xi_{ij}$.
+\begin{itemize}
+\item \emph{Gaussian AR(1)}, $K=\Normal(a';\alpha a,q)$: the posterior-weighted Yule--Walker equations,
+  \begin{equation*}
+    \hat\alpha=\frac{\sum_{ij}\Xi_{ij}\,g_ig_j}{\sum_{ij}\Xi_{ij}\,g_j^2},\qquad
+    \hat q=\frac1W\sum_{ij}\Xi_{ij}\,(g_i-\hat\alpha g_j)^2.
+  \end{equation*}
+\item \emph{Laplace AR(1)}, $K=\mathrm{Laplace}(a'-\alpha a;b)$: $\hat\alpha$ is the weighted median of the ratios
+  $g_i/g_j$ with weights $\Xi_{ij}\lvert g_j\rvert$, and $\hat b=W^{-1}\sum_{ij}\Xi_{ij}\lvert g_i-\hat\alpha g_j\rvert$.
+\item \emph{Mixture}, $K=\sum_c\pi_c\Normal(a'-\alpha a;\nu_c,s_c^2)$: an expectation--conditional-maximisation step.
+  Responsibilities $r_c(i,j)\propto\pi_c\Normal(g_i-\alpha g_j;\nu_c,s_c^2)$; then $\pi_c$, $\nu_c$ and $s_c^2$ are the
+  $\Xi r_c$-weighted frequency, mean and variance of the residual $g_i-\alpha g_j$; then $\alpha$ is the weighted
+  least-squares slope given the components.
+\item \emph{Log-linear families} (the shift bases of \cref{sec:families}, the tilted walk and the two-dimensional
+  spline kernel), $K_\theta(g_i\mid g_j)\propto\exp\big(\sum_m\theta_m b_m(g_i,g_j)\big)$: no closed form, but $Q$ is
+  concave in $\theta$ and its gradient is observed minus expected,
+  \begin{equation}
+    \frac{\partial Q}{\partial\theta_m}=\sum_{ij}\Xi_{ij}\Big[b_m(g_i,g_j)
+    -\sum_{i'}w_{i'}K_\theta(g_{i'}\mid g_j)\,b_m(g_{i'},g_j)\Big].
+  \end{equation}
+  A few gradient steps per iteration suffice (generalised EM): the likelihood still never decreases.
+\item \emph{Neural energy kernel}, $K_\theta(g_i\mid g_j)\propto\exp(-E_\theta(g_j,g_i))$ with $E_\theta$ a perceptron
+  with two hidden SiLU layers: the same $Q$, differentiated by automatic differentiation through $E_\theta$ and the
+  grid normaliser only. Each iteration takes a fixed number of Adam steps on $Q$ and halves the step size whenever $Q$
+  does not increase. The kernel starts uniform.
+\end{itemize}
+With clean data $\Xi$ is the histogram of observed transitions and each M-step is the maximum-likelihood fit.
 
 \begin{figure}[h]
   \centering
@@ -34,29 +112,157 @@ Adam steps per iteration, step halved when $Q$ does not increase). Checkpoint la
   \caption{Mixture kernel ($C=8$). (a) Learned innovation law against the Laplace truth. (b) Relative error of
   $\alpha$, of the innovation variance and of its excess kurtosis against $N$, one fit per $N$.}
   \label{fig:em-innovation}
+  % src: thesis exp_18 (innovation_density.csv, innovation_summary.csv)
 \end{figure}
 
 \section{Sources of error}
 \label{app:errors}
 
-\note{J\'er\^ome: the error decomposition goes here. Grid (quadrature and truncation), kernel misspecification,
-finite data, EM stopping. Thesis Ch.~7--8.}
+\paragraph{Score error is an amplified posterior-mean error.} By \cref{eq:tweedie}, any two denoisers with posterior
+means $\hat m$ and $m$ give scores that differ by $e^{-t}(\hat m-m)/\Dt$. At small $t$ the factor $e^{-t}/\Dt\simeq1/(2t)$
+amplifies every error in the posterior mean, which is why all methods do worst at the smallest noise levels. The
+posterior-mean error also has a direct meaning: for any estimator $\hat a(x)$,
+\begin{equation}
+  \E\lVert a-\hat a(x)\rVert^2=\E\lVert a-\E[a\mid x]\rVert^2+\E\lVert\E[a\mid x]-\hat a(x)\rVert^2,
+\end{equation}
+because $a-\E[a\mid x]$ is orthogonal to every function of $x$. The squared distance to the exact posterior mean is
+therefore exactly the excess denoising risk.
+
+\paragraph{The four contributions for EM--BP.} The error of a learned kernel used inside BP has four sources.
+\begin{enumerate}
+\item \emph{Grid}: quadrature and truncation (\cref{app:bp}), about $10^{-5}$ in relative score error, negligible
+  everywhere.
+\item \emph{Family}: the distance from the true kernel to the best member of the family. It does not shrink with $N$.
+  On the Laplace chain it is the mixture's inability to make the kink; on the Allen--Cahn field it is the shift
+  family's linear drift, which leaves it on the linear floor (\cref{tab:field}). \pending{E56: score error against the
+  Hellinger distance from each learned kernel to the truth.}
+\item \emph{Estimation}: finite and noisy data. The coefficient $\alpha$ is learned to $2.4\%$ from 128 sequences and to
+  $0.1\%$ from 512; the shape of the innovation law converges more slowly (\cref{fig:em-innovation}).
+\item \emph{Optimisation and selection}: EM's stopping point and the checkpoint chosen on validation data. EM's
+  likelihood is flat in the directions that the data barely constrain, so the shape parameters move long after the
+  likelihood has settled (\cref{sec:steps}).
+\end{enumerate}
+A network has the analogues of the last three, with the architecture in place of the family, but it must represent the
+whole map from $x$ to the score at every $t$, not a function of two variables.
+% src: thesis ch07 Prop. "Excess-risk decomposition"; exp_18 for the alpha errors (2.4% at 128, 0.1% from 512)
 
 \section{Network baselines}
 \label{app:networks}
 
-\note{Six architectures, parameter counts, hyperparameter screen, training recipe (DSM on clean sequences, Adam,
-checkpoints at 500--32{,}000 steps, validation selection), the pairing with EM--BP on the same test sequences (E02a and
-E03).}
+\begin{table}[h]
+  \caption{The six networks of \cref{sec:networks}: hyperparameters screened, the configuration selected, and its
+  number of parameters. Every selected configuration predicts the noise ($\epsilon$-parameterisation).}
+  \label{tab:networks}
+  \centering
+  \small
+  \begin{tabular}{@{}llll r@{}}
+    \toprule
+    network & screened & selected & learning rate & parameters\\
+    \midrule
+    global MLP   & hidden $(128,128)$, $(256,256)$ & $(128,128)$ & $10^{-3}$ & 26{,}016\\
+    window CNN   & radius $2,4,8$; width $64,128$ & radius 4, width 64 & $10^{-3}$ & 5{,}505\\
+    TCN          & channels $32,64$; dilations $1,2,4,8$ & 32 channels & $10^{-3}$ & 17{,}057\\
+    BiGRU        & hidden $32,64$ & 32 & $10^{-3}$ & 15{,}169\\
+    transformer  & $(d,\text{heads},\text{layers})=(32,4,2),(64,4,2),(64,4,4)$ & $(32,4,2)$ & $3\times10^{-3}$ & 18{,}057\\
+    U-Net        & channels $16,32$ & 16 & $10^{-3}$ & 13{,}713\\
+    \bottomrule
+  \end{tabular}
+  % src: outputs/E03/params_confirm.json (grids), outputs/E03/winners.json, outputs/E03/confirm.csv (n_params)
+\end{table}
+
+\paragraph{Training.} Denoising score matching on the clean training sequences: each example draws its noise level
+uniformly from the twelve levels of the schedule and fresh Gaussian noise at every step; batch 64, Adam, gradient
+clipping at 1, 32,000 steps, checkpoints at $500,1000,2000,\dots,32{,}000$ steps. The checkpoint used for testing has
+the lowest score error on the 1,024 validation sequences, as for EM.
+% src: outputs/E03/params_confirm.json (net_steps, net_checkpoints, batch_size, grad_clip, n_val); src/markov_score/nn_torch.py TrainConfig
+
+\paragraph{Screening.} For each architecture the grid above, two learning rates ($10^{-3}$, $3\times10^{-3}$) and two
+parameterisations (noise or clean signal) were screened on four development seeds at $N=32$ and $N=2048$, three
+restarts each, and the configuration with the lowest validation error was kept for all sizes. The development seeds
+are disjoint from the 16 test seeds.
+
+\paragraph{Pairing.} EM--BP and the networks are scored on the same test sequences (2,048 per seed and size), which we
+check by the hash of every test bundle: all 384 network rows have an EM--BP partner. Ratios are means over seeds of the
+per-seed ratio.
+% src: tools/paper_figs/make_paper_figures.py::_paired_e03 (refuses to draw on an unpaired row)
+
+\section{Breaking the Markov property}
+\label{app:nonmarkov}
+
+\paragraph{Constructions.} \emph{Global latent}: $a=(y+\beta g)/\sqrt{1+\beta^2}$, with $y$ the Gaussian or Laplace
+chain ($\alpha=0.85$, $L=32$) and one draw $g\sim\Normal(0,1)$ per sequence, $\beta\in\{0.1,0.25,0.5,1\}$. It adds a
+rank-one term to the covariance. \emph{Long-range couplings}: the precision of the Gaussian chain plus $\gamma Q_{\rm
+long}$, where $Q_{\rm long}$ couples sites at distance $\lvert i-j\rvert\geq2$ with strength $e^{-\lvert i-j\rvert/8}$,
+followed by rescaling to unit variance, $\gamma\in\{0.05,0.1,0.2,0.4\}$.
+
+\paragraph{Distance to a Markov chain.} With $\Sigma$ the covariance of the data and $\Sigma_{\rm CL}$ that of the closest
+first-order Gaussian chain,
+\begin{equation}
+  \delta=\frac1{2L}\Big[\operatorname{tr}\big(\Sigma_{\rm CL}^{-1}\Sigma\big)-L
+  +\log\frac{\det\Sigma_{\rm CL}}{\det\Sigma}\Big]
+\end{equation}
+nats per site, in closed form. It is exact for the Gaussian chain and a covariance proxy for the Laplace chain.
+
+\paragraph{Protocol.} 2,048 training sequences, EM--BP with the mixture kernel ($C=8$, 400 iterations), a global MLP
+(hidden $128,128$) and a window CNN (hidden $64,64$), 20,000 SGD steps, scored at five noise levels from $t=0.1$ to
+$t=1.6$ on 256 test sequences. The ratios of \cref{fig:nonmarkov} are averages over these levels.
+% src: archive/Diffusion/research/nongaussian-bp/outputs/frozen/exp_21_clean/*/params_*.json; thesis fig_ch10.py
+\pending{second-order chain with the pair-state repair.}
 
 \section{Allen--Cahn details}
 \label{app:field}
 
-\note{Cells (temperature, spacing, correlation), the family definitions (site energy, tilted spline, log-linear 2-D,
-MDN, shift mixture), the networks, and the $M=128$ table.}
+\paragraph{Cells.} The standardised field $a=\phi/s$, with $s$ the stationary standard deviation, has unit variance.
+The lattice spacing is chosen so that neighbouring sites have correlation $0.85$, except at $\Theta=0.3$ where $h=1$
+already gives $0.848$.
+% src: outputs/E32/cells.json
+
+\begin{table}[h]
+  \caption{The four cells of \cref{sec:allen-cahn}. Excess kurtosis of the single-site law.}
+  \centering
+  \small
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    $\Theta$ & 0.3 & 0.5 & 1 & 2\\
+    \midrule
+    spacing $h$                  & 1     & 0.419 & 0.226 & 0.150\\
+    neighbour correlation        & 0.848 & 0.850 & 0.850 & 0.850\\
+    correlation length (sites)   & 6.08  & 6.15  & 6.15  & 6.15\\
+    standard deviation $s$       & 0.821 & 0.766 & 0.818 & 0.950\\
+    excess kurtosis              & $-1.35$ & $-0.88$ & $-0.59$ & $-0.46$\\
+    \bottomrule
+  \end{tabular}
+  % src: outputs/E32/cells.json
+\end{table}
+
+\paragraph{Kernel families.} All are learned by EM through BP from one noisy view per sequence, with the same ladder
+and selection as on the Laplace chain.
+\begin{itemize}
+\item \emph{Site energy} (5 parameters): $K(a'\mid a)\propto\exp(-W(a,a'))$ with
+  $W=(a'-a)^2/(2\gamma)+f(a)+f(a')$ and $f$ a quartic. This is the form of the lattice action.
+\item \emph{Tilted spline} (25): $K(a'\mid a)\propto\Normal(a';a,\gamma)\,g(a')$, $\log g$ a combination of 24 cubic
+  B-splines.
+\item \emph{Log-linear 2-D} (100): $\log K$ in a $10\times10$ tensor B-spline basis; no field structure.
+\item \emph{Mixture density network} (1,516): a mixture of four Gaussians for $a'$ whose weights, means and variances
+  are given by a network of $a$ with 32 hidden units.
+\item \emph{Shift mixture} (25): the mixture of \cref{sec:families}.
+\end{itemize}
+
+\paragraph{Networks and floor.} The window CNN (5,505 parameters) and the transformer (43,209), re-screened per cell on
+two development seeds, each trained from the same information as EM (one noisy view per sequence) by implicit score
+matching and by denoising score matching; the table reports the best of the four per cell. The floor is the best linear denoiser, computed from the true
+covariance.
+% src: experiments/registry/E33.json (design); jerome-call-2026-10-29-slide15.md (parameter counts)
+
+\paragraph{Temperature and potential.} For any kernel of the site-energy class, the bond variance and the site
+energy are read off the learned kernel: $\partial_a\partial_{a'}\log K=1/\gamma$ and
+$-\tfrac12\log K(a\mid a)=f(a)+\text{const}$. Then $\hat\Theta=\hat\gamma s^2/h$ and
+$\hat V(\phi)=(2\hat\Theta/h)\hat f(\phi/s)+\text{const}$.
+% src: answers note Q8 (E33, E51)
 
 \begin{table}[h]
   \caption{As \cref{tab:field}, from $M=128$ training sequences.}
+  \label{tab:field-128}
   \centering
   \small
   \begin{tabular}{@{}lcccc@{}}
