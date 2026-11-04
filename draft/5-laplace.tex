@@ -115,8 +115,22 @@ leads one to expect. The best network at each $N$ is $2.1$ to $2.8$ times worse 
 BiGRU above.
 % src: mean per-seed ratios, reports/paper-figures/README.md: MLP 5.79/7.95/7.88/9.85, CNN 2.07/2.87/3.45/5.58, BiGRU 2.22/2.45/2.24/2.83
 % src: window CNN seed means 0.1861, 0.1413, 0.1209, 0.1181
+Both sides here select with the exact score of the validation sequences. Selecting instead by the likelihood of the
+noisy validation sequences (EM) and the validation denoising loss (networks) changes the errors by at most $7\%$, and
+the kernels stay below the best network in at least 15 of 16 seeds at every $N$ (\cref{app:em}).
+% src: tools/core/read_e65.py on outputs/hpc_E65_{k_h0,k_h8,nets} (E65, frozen 4 Nov 2026, 976b595): free/oracle max
+% em_bp 1.7%, spline 6.9%, energy 6.9%, networks <= 3.4% (BiGRU); paired below best network 16/16, 16/16, >= 15/16.
+% E65's registered P3 is VOID (TCN and transformer missed the 2% reproduction gate): this sentence is descriptive.
 \Cref{fig:families-error} adds the other kernel families. \pending{E56: does the neural energy kernel beat the
 networks at small $N$, as the registered prediction says.}
+
+\paragraph{The model or the objective?} Trained with the networks' own objective and data, denoising score matching
+on the clean sequences with the score computed by a differentiable BP (\cref{app:networks}), the neural energy kernel
+is still below the best network in 16 of 16 seeds at every $N$ ($0.018$ against BiGRU's $0.060$ at $N=2048$): the gain
+comes from the model. The objective matters too: maximum likelihood on the same sequences is $1.3$ to $2.5$ times more
+accurate still.
+% src: tools/core/read_e66.py (E66, frozen 4 Nov 2026, 976b595): bp_dsm 0.0557/0.0329/0.0236/0.0183, BiGRU 0.0596 at
+% N=2048, P1 16/16 at every N; bp_dsm / E58 energy_h16 (clean ML) = 1.33, 1.31, 1.82, 2.46 at N = 32..2048 (P2 FALSIFIED).
 
 \subsection{Step efficiency}
 \label{sec:steps}
@@ -137,11 +151,32 @@ monotonically and reaches the same plateau within about twenty iterations (\cref
 the likelihood constrains only weakly take longer: over 16 seeds, $\alpha$ settles in a median of 80 updates and the
 shape of the innovation law in 229 (at most 638).
 % src: memory em-shape-convergence (thesis exp_27, 16 seeds, C=8): rho median 80, shape 229, tail 638
-The networks are still improving after $3.2\times10^4$ SGD steps (\cref{fig:em-dynamics}b). An EM iteration is a full
-pass of BP over the data (3 to 6.6\,s for $N=2048$ on one CPU thread), and an SGD step is one minibatch, so we make no
-claim about wall-clock time.
-% src: E56 timing job 728409: 3.0-6.6 s per EM step at N=2048
+The networks are still improving after $3.2\times10^4$ SGD steps (\cref{fig:em-dynamics}b).
+
+Fewer updates do not mean less time: an EM iteration, a BP pass over all the data, costs 190 to 270 BiGRU steps at
+$N=2048$ (\cref{app:compute}). From noisy data the energy kernel reaches the error of BiGRU's selected checkpoint first
+in only 7 of 16 seeds at $N=2048$, and its own selected checkpoint later than BiGRU in all 16; from clean data, where an
+M-step is one maximum-likelihood fit, it is first in 16 of 16 seeds at every $N\geq128$. At test time BP costs 6 to
+20 times a sequence model's forward pass.
+% src: tools/core/read_e63.py on outputs/hpc_E63 + E65's curves (E63, frozen 4 Nov 2026, 976b595): s per update at
+% N=2048 em_bp 3.40, spline 2.34, energy 2.49, clean_energy 0.482, BiGRU 0.0126 (271x, 187x, 198x); P1 FALSIFIED 7/16,
+% P3 16/16, P2 16/16 at N=128/512/2048; use time BP 6972 us vs TCN 1219, transformer 952, U-Net 904, BiGRU 343 us.
 % NOTE: the exp_27 figures ("80", "229", "638") come from the memory file, not from a reader script; re-read before submission.
+
+\subsection{Generation}
+\label{sec:generation}
+
+With the same ancestral sampler for every model (400 steps down to $t=0.005$; the networks retrained on continuous
+levels, \cref{app:generation}), the kernels' samples are closer to the chain. At $N=2048$ the sliced Wasserstein
+distance to exact samples is $0.059$ for EM--BP against $0.109$ for BiGRU, the best network, and $0.053$ between two
+exact samples. At $N=128$ the clean-data kernel is below every network in at least 7 of 8 seeds, and its residuals'
+excess kurtosis is closer to the Laplace value than the best network's in 6 of 8 seeds at both $N$. The samples'
+likelihood under the true chain does not rank the models: with the true kernel the sampler scores worse on it than the
+window CNN (\cref{app:generation}).
+% src: tools/core/read_e64.py on outputs/hpc_E64 (E64, frozen 4 Nov 2026, 976b595), seed means over 8 seeds: SW2 at
+% N=2048 em_bp 0.0590, clean_energy 0.0597, bigru_cont 0.1087, exact 0.0532; N=128 clean_energy 0.0966, best net
+% window_cont 0.1327; P2 (7/8 at N=128, 8/8 at N=2048), P3 (6/8) CONFIRMED; |loglik gap| oracle_sampler 1.398,
+% window_cont 0.373 at N=2048, P4 FALSIFIED.
 
 \subsection{When the data are not Markov}
 \label{sec:nonmarkov}

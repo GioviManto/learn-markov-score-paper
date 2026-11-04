@@ -73,9 +73,34 @@ of \cref{app:networks} instead see the clean sequences and draw fresh noise at e
 $0.8$. EM runs to 1,200 iterations and keeps the kernel at the checkpoints $10,20,40,60,80,120,160,220,300,400,600,800$
 and $1{,}200$. The checkpoint used for testing is the one with the lowest score error on 1,024 validation sequences.
 The networks are selected by the same rule (\cref{app:networks}); both selections use the exact score of the
-validation sequences, so the comparison is fair but optimistic for both. \pending{E56 also records the selection by
-held-out likelihood, which needs no exact score.}
+validation sequences, so the comparison is fair but optimistic for both.
 % src: outputs/E02a/params_capacity.json (em_checkpoints, em_init_rho = 0.3, em_init_var = 0.8, n_val = 1024)
+
+\paragraph{Selection without the exact score.} In practice the exact score is unknown. EM can then select by the
+likelihood of the noisy validation sequences (every validation sequence at each of the twelve levels), which BP
+computes; a network can select by its denoising loss on the clean validation sequences at the same levels, with one
+fixed noise draw. We refitted the mixture, spline and energy kernels and retrained the six networks with their recipes
+and seeds, recording both criteria at every checkpoint. The refits reproduce the kernels' errors exactly; the
+networks' seed means agree with the original runs within $1.8\%$, except the TCN and the transformer (up to $3.0\%$
+and $3.3\%$). Selection by likelihood changes the kernels' test error by at most $1.7\%$ (mixture) and $6.9\%$
+(spline, energy), selection by the validation loss the networks' by at most $3.4\%$ (BiGRU). With both sides
+selected without the exact score, the mixture and spline kernels are below the best network in 16 of 16 seeds at every
+$N$ and the energy kernel in at least 15.
+% src: tools/core/read_e65.py on outputs/hpc_E65_{k_h0,k_h8,nets} (E65, frozen 4 Nov 2026, 976b595); reproduction:
+% kernels +0.0% at every N, MLP/window/BiGRU/U-Net <= 1.8%, TCN -3.0% (N=32), transformer +3.3% (N=2048), so E65's
+% registered P1 is FALSIFIED and P3 VOID; the last sentence is descriptive.
+
+\paragraph{Compute.}
+\label{app:compute}
+Seconds per update on one CPU thread at $N=2048$ (median of three after a warm-up, a development seed): an EM
+iteration costs $3.40$\,s for the mixture, $2.34$\,s for the spline and $2.49$\,s for the energy kernel; a clean-data
+M-step of the energy kernel $0.48$\,s; an SGD step on a minibatch of 64 costs $12.6$\,ms for BiGRU, $17.0$\,ms for the
+U-Net, $16.6$\,ms for the TCN, $11.7$\,ms for the transformer, $2.5$\,ms for the window CNN and $1.0$\,ms for the MLP.
+An EM iteration grows with $N$ (the mixture costs $1.47$\,s at $N=32$) because BP runs over every sequence; an SGD
+step does not. The wall-clock comparisons of \cref{sec:steps} multiply these costs by the update counts of the refits
+above. At test time BP on the 401-point grid costs $7.0$\,ms per sequence over the twelve levels (batch 2,048),
+against $0.34$\,ms for BiGRU, $0.90$\,ms for the U-Net, $0.95$\,ms for the transformer and $1.2$\,ms for the TCN.
+% src: outputs/hpc_E63/timing.csv (E63, frozen 4 Nov 2026, 976b595), tools/core/read_e63.py D1
 
 \paragraph{M-steps.} Write $\Xi_{ij}=\sum_{d,k}\xi^{(d)}_k(i,j)$ for the expected transition counts and
 $W=\sum_{ij}\Xi_{ij}$.
@@ -185,6 +210,43 @@ are disjoint from the 16 test seeds.
 check by the hash of every test bundle: all 384 network rows have an EM--BP partner. Ratios are means over seeds of the
 per-seed ratio.
 % src: tools/paper_figs/make_paper_figures.py::_paired_e03 (refuses to draw on an unpaired row)
+
+\paragraph{Score matching through BP.} The neural energy kernel (width 16, uniform start) trained with the networks'
+recipe above: clean training sequences, a level drawn from the twelve and fresh noise at every step, the
+$\epsilon$-prediction loss, batch 64, Adam, clipping at 1, 32,000 steps, selection by the validation score error. The
+posterior mean, and hence $\hat\epsilon$, comes from a forward--backward pass written in an automatic-differentiation
+framework (double precision) on a 201-point grid; the kernel is a function, so it is evaluated on the 401-point grid.
+The learning rate, $10^{-2}$, was screened over $\{10^{-3},3\times10^{-3},10^{-2}\}$ on two development seeds. A step
+costs about 68\,ms. The selected step has median 2,000, 8,000, 24,000 and 12,000 at $N=32$, 128, 512 and 2,048, and
+the kernel's Hellinger distance to the truth levels off ($0.032$ at $N=2048$, against $0.011$ for the same family
+fitted by maximum likelihood on the same sequences).
+% src: experiments/registry/E66.json design; tools/core/read_e66.py D1-D3 on outputs/hpc_E66_{dev,h0,h8} (frozen 4 Nov 2026)
+
+\section{Generation}
+\label{app:generation}
+
+\paragraph{Sampler.} Ancestral sampling of the variance-preserving diffusion from $x\sim\Normal(0,I)$ at $t=3$, in 400
+geometric steps to $t=0.005$, with the posterior mean read out at the last step; 2,048 sequences per model, and the
+same sampler noise for every model. The kernels enter through BP on the 401-point grid at every step: the true kernel
+(a check on the sampler itself), the mixture fitted by EM, the spline and energy kernels fitted by EM, and the energy
+kernel fitted by maximum likelihood on clean data, each at the same seed and $N$ as in \cref{sec:networks}. As a
+control the mixture and the clean-data kernel are also sampled directly as Markov chains. The U-Net, BiGRU and window
+CNN are retrained with the recipe of \cref{app:networks}, except that the noise level of each example is drawn
+log-uniformly from $[0.005,3]$. Eight seeds, $N=128$ and $2{,}048$.
+% src: experiments/registry/E64.json design (E55's sampler, tag e64-gen-noise)
+
+\paragraph{Metrics and results.} Against a reference of exact samples: the sliced Wasserstein-2 distance, the excess
+kurtosis of the AR residuals $a_k-0.85\,a_{k-1}$ (the Laplace tails), and the gap between the mean log-likelihood of the
+samples under the true chain and that of exact samples. Seed means, $N=2048$: the sliced distance is $0.053$ between
+two exact samples, $0.058$ with the true kernel in the sampler, $0.059$ for every noisy-EM kernel, $0.060$ for the
+clean-data kernel and $0.055$ when the kernels are sampled directly, against $0.109$ (BiGRU), $0.129$ (window CNN) and
+$0.135$ (U-Net). At $N=128$ the kernels are at $0.097$ to $0.100$ and the networks at $0.133$ (window), $0.164$ (BiGRU)
+and $0.278$ (U-Net), whose samples have heavy outliers (kurtosis error 16). The kurtosis error of the clean-data
+kernel is $0.29$ and $0.21$ at the two sizes, against $0.77$ and $0.22$ for the window CNN, the best network on it. The
+likelihood gap is $1.29$ and $1.40$ with the true kernel in the sampler but only $0.12$ to $0.13$ between exact samples
+and $0.19$ to $0.20$ for the kernels sampled directly at $N=2048$; the window CNN reaches $0.37$ there. The gap thus
+comes mostly from the sampler, not from the score, and we do not use it to rank the scores.
+% src: tools/core/read_e64.py on outputs/hpc_E64 (E64, frozen 4 Nov 2026, 976b595): P1-P3 CONFIRMED, P4 FALSIFIED.
 
 \section{Breaking the Markov property}
 \label{app:nonmarkov}
