@@ -19,7 +19,8 @@ bivariate Laplace chain an energy kernel learned by EM beats two-channel network
 Gaussian kernel in 8 of 8 at $N=2048$, at $15$\,s per EM iteration, though only at $N=2048$ does it beat the linear
 denoiser built from the true covariance.
 % src: tools/core/read_e67.py (E67, frozen 5 Nov 2026, 6c56fbb): energy2d 0.0532/0.0406/0.0304, bigru2 0.0599/0.0438/0.0344,
-% var1 0.0455/0.0381/0.0360, lmmse (true covariance) 0.0351 at N = 128/512/2048; levels t >= 0.3 only. The index set must be a tree: on a two-dimensional lattice BP is no longer exact. The grid costs
+% var1 0.0455/0.0381/0.0360, lmmse (true covariance) 0.0351 at N = 128/512/2048; levels t >= 0.3 only.
+The index set must be a tree: on a two-dimensional lattice BP is no longer exact. The grid costs
 $O(L\Ng^2)$ per sequence, 6 to 20 times a sequence network's forward pass here, and it limits how small $t$ can be.
 \note{Mezard's defence questions belong here: (i) longer chains: BP's cost is linear in $L$ and the kernel does not
 depend on $L$ (E03 length test); (ii) what this says about computing scores for diffusion models in general: learn the
