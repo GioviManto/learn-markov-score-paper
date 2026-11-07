@@ -10,29 +10,32 @@ $t$ at once, and what they learn about the structure of the data is an active qu
 \cite{kadkhodaie2024generalization,kamb2024analytic,biroli2024dynamical}.
 
 We study this question on data whose structure is known exactly: first-order Markov sequences. A Markov sequence is
-fixed by its transition kernel $K(a_{k+1}\mid a_k)$. This covers a wide class of data with a direction or a
-locality, from time series of causal processes to one-dimensional physical fields with nearest-neighbour interactions,
-whose stationary law is a chain. The question is what a denoiser gains from knowing that the data are Markov, and how
-it should use that knowledge.
+fixed by its transition kernel $K(a_{k+1}\mid a_k)$. This covers a wide class of data with a direction or a locality,
+from time series of causal processes to one-dimensional physical fields with nearest-neighbour interactions, whose
+stationary law is a chain. We ask what a denoiser gains from knowing that the data are Markov, and how it should use
+that knowledge.
 
 The answer has three parts, which organise the paper.
 First, the structure is \emph{not} in the score. For the Gaussian chain the score is linear and its matrix is
 tridiagonal at $t=0$, but diffusion fills it in: at intermediate noise every site depends on every other
-(\cref{sec:gaussian}). A denoiser constrained to be local, by a tridiagonal fit or a small receptive field, has an
-error floor that no amount of data removes.
+(\cref{sec:gaussian}). A denoiser constrained to be local has an error floor that no amount of data removes.
 Second, the structure \emph{is} in the posterior. A Markov chain observed through independent noise is a tree, so
 belief propagation (BP) computes $\E[a\mid x]$ exactly, for any kernel and at every $t$ (\cref{sec:tree}).
-Third, learning the denoiser therefore reduces to learning the kernel. We do this by expectation--maximisation (EM),
-with BP as the E-step, from noisy sequences only (\cref{sec:laplace}). BP enters the learning only through expected
-transition counts, so the kernel can be any differentiable family, a small neural network included, without
-differentiating through BP.
+Third, learning the denoiser therefore reduces to learning the kernel, a function of two variables, which we do by
+expectation--maximisation (EM) with BP as the E-step, from noisy sequences only (\cref{sec:em}). BP enters the
+learning only through expected transition counts, so the kernel can be any differentiable family, a small neural
+network included, without differentiating through BP.
 
-We test this on a non-Gaussian Markov chain with Laplace innovations, the simplest case where the exact score is not
-linear, against six neural denoisers trained on the same data, and we measure how the comparison changes as the data
-depart from the Markov property (\cref{sec:laplace}). We then apply it to the stochastic Allen--Cahn field, where the
-choice of kernel family matters (\cref{sec:allen-cahn}).
-
-\note{Related work in one paragraph here or in Sec.~7: HMM and Kalman EM \cite{baum1970,shumway1982em}; diffusion
-from corrupted data with EM \cite{daras2023ambient,rozet2024learning,bai2024em}; BP and transformers on structured
-data \cite{garnierbrun2024transformers}; analytic denoisers \cite{kamb2024analytic}. J\'er\^ome will help with the
-literature.}
+We test this on a Markov chain with Laplace innovations, the simplest case in which the exact score is not linear,
+against six neural denoisers trained on the same data (\cref{sec:laplace}). Our findings are the following.
+\begin{itemize}
+\item Every kernel learned by EM beats every network at every training-set size. A neural energy kernel that assumes
+  only the Markov property matches the best 25-parameter family, and it still wins when trained with the networks'
+  own objective: the gain comes from the model (\cref{sec:networks}).
+\item On nine other chains, families with a fixed innovation law fall to the error of a linear denoiser outside their
+  class; the neural kernel does not (\cref{sec:chains}).
+\item Without the Markov property the advantage shrinks along one curve against the distance to the closest
+  first-order chain, and BP on pairs of sites restores it for a second-order chain (\cref{sec:nonmarkov}).
+\item On the stochastic Allen--Cahn field the neural kernel beats a diffusion U-Net with ten thousand times more
+  parameters, and a kernel with the form of the lattice action returns the temperature (\cref{sec:allen-cahn}).
+\end{itemize}

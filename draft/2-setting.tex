@@ -24,7 +24,7 @@ so a denoiser and a score model are the same object, and we compare methods by t
 $\eta_k$. The \emph{Laplace chain} has the same $\alpha$ and Laplace innovations of the same variance,
 $\varepsilon_k\sim\mathrm{Laplace}(0,b)$ with $2b^2=1-\alpha^2$. The two have the same covariance, so every linear
 denoiser treats them identically; any gain on the Laplace chain comes from its non-Gaussian structure alone. We use
-$\alpha=0.85$ and $L=32$.
+$\alpha=0.85$ and $L=32$, and write $N$ for the number of training sequences.
 
 \paragraph{Error.} We report the relative score error
 \begin{equation}

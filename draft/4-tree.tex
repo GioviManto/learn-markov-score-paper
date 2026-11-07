@@ -38,19 +38,10 @@ chain, refining the grid changes the score by about $10^{-5}$ in relative terms 
   \label{fig:laplace}
 \end{figure*}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics{fig_closure}
-  \caption{Laplace chain with the true kernel. Relative score error of the best linear denoiser (the Gaussian
-  closure: the Kalman smoother with the chain's covariance; median and 10--90\% band over test sequences) against
-  the change of grid BP's score under grid refinement. The arrow marks the gap.}
-  \label{fig:closure}
-\end{figure}
-
 \paragraph{The known-kernel case.} \Cref{fig:laplace} shows what changes on the Laplace chain. Its innovation law has a
 kink at zero and exponential tails, and its exact score is not linear in $x$. At small noise it saturates: a single
 large observation is partly attributed to the noise instead of being followed. At large noise it becomes linear and
 close to the Gaussian one. A linear denoiser cannot represent the saturation. The best one, the Kalman smoother
 matched to the chain's covariance, has a median relative score error of $0.27$ at $t=0.05$, against a grid error of
-$10^{-5}$ for BP (\cref{fig:closure}). The gap closes as $t$ grows, where both scores become linear.
+$10^{-5}$ for BP (\cref{fig:closure} in \cref{app:bp}); the gap closes as $t$ grows.
 % src: thesis tools/data/ch07_metrics.csv: score_med 0.269 at t=0.05 (0.377 at t=0.02), 8.1e-6 at t=3

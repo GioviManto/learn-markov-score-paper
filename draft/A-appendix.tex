@@ -49,6 +49,15 @@ differ by $1.1\times10^{-5}$ in relative terms at $t=0.05$, at least three order
 report.
 % src: fig_grid_gaussian (exp_01/grid_sweep_M.csv); thesis tools/data/ch07_metrics.csv grid_selfconv_med
 
+\begin{figure}[h]
+  \centering
+  \includegraphics{fig_closure}
+  \caption{Laplace chain with the true kernel. Relative score error of the best linear denoiser (the Gaussian
+  closure: the Kalman smoother with the chain's covariance; median and 10--90\% band over test sequences) against
+  the change of grid BP's score under grid refinement. The arrow marks the gap.}
+  \label{fig:closure}
+\end{figure}
+
 \label{app:numerics}
 \begin{figure}[h]
   \centering
@@ -102,6 +111,17 @@ above. At test time BP on the 401-point grid costs $7.0$\,ms per sequence over t
 against $0.34$\,ms for BiGRU, $0.90$\,ms for the U-Net, $0.95$\,ms for the transformer and $1.2$\,ms for the TCN.
 % src: outputs/hpc_E63/timing.csv (E63, frozen 4 Nov 2026, 976b595), tools/core/read_e63.py D1
 
+\begin{figure}[h]
+  \centering
+  \includegraphics{fig_em_dynamics}
+  \caption{Training dynamics. (a) Log-likelihood of the training data against EM iteration from four starting values
+  $\alpha_0$ of the coefficient (mixture kernel, $C=8$). (b) Validation score error against the number of parameter
+  updates at $N=2048$: EM iterations for two kernels, SGD steps for three networks. Mean over 16 seeds.}
+  \label{fig:em-dynamics}
+  % src: (a) outputs/frozen/exp_18/em_trace.csv (thesis); (b) outputs/hpc_E56_s*/kernels.csv val_curve (spline, energy)
+  % and outputs/E03/confirm.csv val_curve
+\end{figure}
+
 \paragraph{M-steps.} Write $\Xi_{ij}=\sum_{d,k}\xi^{(d)}_k(i,j)$ for the expected transition counts and
 $W=\sum_{ij}\Xi_{ij}$.
 \begin{itemize}
@@ -127,9 +147,15 @@ $W=\sum_{ij}\Xi_{ij}$.
 \item \emph{Neural energy kernel}, $K_\theta(g_i\mid g_j)\propto\exp(-E_\theta(g_j,g_i))$ with $E_\theta$ a perceptron
   with two hidden SiLU layers: the same $Q$, differentiated by automatic differentiation through $E_\theta$ and the
   grid normaliser only. Each iteration takes a fixed number of Adam steps on $Q$ and halves the step size whenever $Q$
-  does not increase. The kernel starts uniform.
+  does not increase. The kernel starts uniform. In the first implementation a rejected step kept Adam's moment
+  estimates, and 4 to 7\% of fits ended at a step size below $10^{-10}$, some of them near the initial kernel (stalls
+  are most frequent with clean data, where $\Xi$ does not change between iterations). Restarting the optimiser after a
+  rejection removes them (0 of 448 fits in \cref{sec:chains}). The results of \cref{sec:networks,sec:allen-cahn} come
+  from the first implementation, and every fit, stalled or not, enters their averages.
 \end{itemize}
 With clean data $\Xi$ is the histogram of observed transitions and each M-step is the maximum-likelihood fit.
+% src: stalls: E58 outcome (23 of 576 fits), E55 finished cells (15 of 208 with final lr < 1e-10), E61 D5 (0 of 448 with
+% NeuralEnergyKernel.fresh_on_reject, bf55e2c)
 
 \begin{figure}[h]
   \centering
@@ -159,8 +185,10 @@ therefore exactly the excess denoising risk.
   everywhere.
 \item \emph{Family}: the distance from the true kernel to the best member of the family. It does not shrink with $N$.
   On the Laplace chain it is the mixture's inability to make the kink; on the Allen--Cahn field it is the shift
-  family's linear drift, which leaves it on the linear floor (\cref{tab:field}). \pending{E56: score error against the
-  Hellinger distance from each learned kernel to the truth.}
+  family's linear drift, which leaves it on the linear floor (\cref{tab:field}). Across families the score error follows
+  the kernel error: at $N=2048$ on the Laplace chain the Hellinger distance from the learned to the true kernel is
+  $0.039$ for the neural kernel, $0.046$ to $0.049$ for the four shift bases and $0.107$ for the log-linear kernel, and
+  their score errors are $0.024$, $0.027$ to $0.029$ and $0.132$.
 \item \emph{Estimation}: finite and noisy data. The coefficient $\alpha$ is learned to $2.4\%$ from 128 sequences and to
   $0.1\%$ from 512; the shape of the innovation law converges more slowly (\cref{fig:em-innovation}).
 \item \emph{Optimisation and selection}: EM's stopping point and the checkpoint chosen on validation data. EM's
@@ -194,6 +222,15 @@ whole map from $x$ to the score at every $t$, not a function of two variables.
   \end{tabular}
   % src: outputs/E03/params_confirm.json (grids), outputs/E03/winners.json, outputs/E03/confirm.csv (n_params)
 \end{table}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics{fig_families_error}
+  \caption{Relative score error of every kernel family against $N$, with the best of the six networks at each $N$,
+  on the test sequences of \cref{fig:value-of-structure}. Mean over 16 seeds.}
+  \label{fig:families-error}
+  % src: outputs/hpc_E56_s*/kernels.csv (E56) + E02a em_bp + E03 networks (tools/paper_figs::fig_families_error)
+\end{figure}
 
 \paragraph{Training.} Denoising score matching on the clean training sequences: each example draws its noise level
 uniformly from the twelve levels of the schedule and fresh Gaussian noise at every step; batch 64, Adam, gradient
@@ -268,8 +305,39 @@ nats per site, in closed form. It is exact for the Gaussian chain and a covarian
 \paragraph{Protocol.} 2,048 training sequences, EM--BP with the mixture kernel ($C=8$, 400 iterations), a global MLP
 (hidden $128,128$) and a window CNN (hidden $64,64$), 20,000 SGD steps, scored at five noise levels from $t=0.1$ to
 $t=1.6$ on 256 test sequences. The ratios of \cref{fig:nonmarkov} are averages over these levels.
-% src: archive/Diffusion/research/nongaussian-bp/outputs/frozen/exp_21_clean/*/params_*.json; thesis fig_ch10.py
-\pending{second-order chain with the pair-state repair.}
+Part of a global latent variable is absorbed into the learned kernel: at $\beta=1$ the learned coefficient moves from
+$0.848$ to $0.939$, close to that of the best first-order chain.
+% src: archive/Diffusion/research/nongaussian-bp/outputs/frozen/exp_21_clean/*/params_*.json; thesis fig_ch10.py;
+% beta = 1 coefficient: answers note Q12 (thesis Sec. 8.6, Table 8.9)
+
+\paragraph{Second-order chains.} $a_k=\phi_1a_{k-1}+\phi_2a_{k-2}+\varepsilon_k$ with Laplace innovations,
+$\phi_2\in\{-0.3,0,0.1,0.2,0.3,0.4,0.6\}$ and $\phi_1=0.85\,(1-\phi_2)$, so that the lag-one correlation stays at
+$0.85$; the innovation variance makes the stationary variance one. The distance $\delta$ is now exact: it is the
+conditional mutual information $I(a_k;a_{k-2}\mid a_{k-1})$, computed on the grid of the pair state; for Gaussian
+innovations it would be $-\tfrac12\log(1-\phi_2^2)$, a function of the partial autocorrelation. The exact score comes
+from BP on the pair state $(a_{k-1},a_k)$ with the true kernel on a 151-point grid per site (151 and 201 points differ
+by $7\times10^{-4}$ in relative score). Consecutive pair states share a site, so a BP step costs $O(\Ng^3)$ rather than
+$O(\Ng^4)$. The arms are first-order EM--BP with the mixture kernel; EM--BP on the pair state with a two-lag mixture
+kernel, $21$\,s per EM iteration at $N=2048$ on one thread; the global MLP and window CNN of \cref{app:networks}; and the
+linear denoiser of the true covariance. Eight seeds, $N=128$, $512$ and $2048$. The exact error of the best first-order
+kernel (the line in \cref{fig:nonmarkov}b) was computed from the true chain before any fit.
+% src: experiments/registry/E62.json (design, calibration_2026-11-02: floor 0.055/0.113/0.172/0.228/0.342 at
+% phi2 = 0.1..0.6; grid 101 vs 201 2.9e-3, 151 vs 201 7e-4); 21 s per iteration from the E62 registration notes
+
+\paragraph{Wind.} Hourly wind speed at the Horns Rev offshore site, 2015--2024, transformed as
+$z=(\sqrt v-m)/\sigma$ with $m$ the mean of the training years for that month and hour and $\sigma$ their standard
+deviation; training years 2015--2021, windows of $L=32$ hours, the noise added by the diffusion. Its lag-two partial
+autocorrelation is $-0.29$ and later ones are close to zero ($\delta=0.045$). There is no exact score, so the error is
+measured against the score built from the clean value, $(e^{-t}a-x)/\Dt$, which contains the noise itself: every model
+sits near $0.51$, and only paired differences are meaningful. At $N=1917$ windows the first-order kernel scores
+$0.5132$, the pair state $0.5056$, the window CNN $0.5096$ and the MLP $0.5115$; the pair state is below the first-order
+kernel in 8 of 8 seeds at every $N$. Used as a forecaster, the first-order kernel gives better predictive distributions
+than a Gaussian AR(1) model (continuous ranked probability score, $N\geq128$), but quantile networks overtake it on this
+series from $N=128$; on a simulated threshold autoregression, which is first order, the kernel beats both quantile
+networks up to $N=512$.
+% src: tools/core/read_e62.py D4 and P5 (E62, frozen 6 Nov 2026); E62.json calibration (wind PACF, delta);
+% tools/core/read_e59.py (E59, frozen 2 Nov 2026): P1, P2, P4 CONFIRMED, D1 (CRPS at N=1917: qgru 0.2715, qmlp 0.2711,
+% kernel 0.2911, gauss_ar1 0.2957); wind file and transform: experiments/registry/E59.json design
 
 \section{Allen--Cahn details}
 \label{app:field}
@@ -278,6 +346,15 @@ $t=1.6$ on 256 test sequences. The ratios of \cref{fig:nonmarkov} are averages o
 The lattice spacing is chosen so that neighbouring sites have correlation $0.85$, except at $\Theta=0.3$ where $h=1$
 already gives $0.848$.
 % src: outputs/E32/cells.json
+
+\begin{figure}[h]
+  \centering
+  \includegraphics{fig_field}
+  \caption{The Allen--Cahn chain. (a) Single-site law of the standardised field at the four temperatures.
+  (b) The tilt $\log g$ of the kernel at $\Theta=0.3$ against the quadratic of the Gaussian chain with the same
+  correlation. (c) One exact sample at $\Theta=0.3$; dotted lines mark the two wells.}
+  \label{fig:field}
+\end{figure}
 
 \begin{table}[h]
   \caption{The four cells of \cref{sec:allen-cahn}. Excess kurtosis of the single-site law.}
@@ -307,13 +384,36 @@ and selection as on the Laplace chain.
 \item \emph{Log-linear 2-D} (100): $\log K$ in a $10\times10$ tensor B-spline basis; no field structure.
 \item \emph{Mixture density network} (1,516): a mixture of four Gaussians for $a'$ whose weights, means and variances
   are given by a network of $a$ with 32 hidden units.
+\item \emph{Free mixture} (24): $K(a'\mid a)=p(a,a')/p(a)$ with $p$ a mixture of four bivariate Gaussians, so the
+  conditional law of $a'$ is a mixture whose weights and means depend on $a$. Eight components are never better than
+  four.
+\item \emph{Neural energy} (337 to 1{,}185): the kernel of \cref{sec:families}, with two hidden layers of 16 or 32 units,
+  the width screened per cell on development seeds.
 \item \emph{Shift mixture} (25): the mixture of \cref{sec:families}.
 \end{itemize}
+% src: E60 (hpc_E60_a/b, read_e60.py: em_free_C4 24 parameters; P3 C8/C4 never below 1 at N=2048 except T0.3, 0.98);
+% E55 em_energy n_params 337 (width 16) and 1,185 (width 32, Theta = 0.5)
 
-\paragraph{Networks and floor.} The window CNN (5,505 parameters) and the transformer (43,209), re-screened per cell on
-two development seeds, each trained from the same information as EM (one noisy view per sequence) by implicit score
-matching and by denoising score matching; the table reports the best of the four per cell. The floor is the best linear denoiser, computed from the true
-covariance.
+\paragraph{Networks and floor.} The window CNN (5{,}249 to 19{,}201 parameters) and the transformer (18{,}057 to
+68{,}361), re-screened per cell on two development seeds, each trained from the same information as EM (one noisy view
+per sequence) by implicit score matching and by denoising score matching; the tables report the best of the four per
+cell. The floor is the best linear denoiser, computed from the true covariance.
+
+\paragraph{U-Net.} A one-dimensional DDPM U-Net with base width 128 ($1.2\times10^{7}$ parameters), trained by denoising
+score matching on the clean training sequences: each example at one of the twelve levels with fresh noise, batch 128,
+Adam with 1{,}000 warm-up steps, gradient clipping at 1, an exponential moving average of the weights (decay $0.999$),
+up to $2^{18}$ steps, the checkpoint selected on the validation sequences (median 874 steps at $N=2048$, 4{,}096 at
+$N=8192$). Its width, and that of the neural energy kernel, were screened per cell on
+development seeds. It is compared with the neural energy kernel on eight seeds, on the cells of \cref{tab:field} and on a
+cell with $L=64$ sites at spacing $h=0.5$ ($\Theta=0.3$), with $N$ from 32 to 8{,}192 (32{,}768 at $\Theta=0.3$).
+
+\paragraph{Neural kernel against the U-Net.} At $N=2048$ the neural kernel is below the U-Net in 8, 8, 8 and 6 of 8
+seeds on the cells of \cref{tab:field} and in 7 of 8 on the cell with $L=64$. At $N=8192$ it is still below in 24 of 32
+paired seeds, but its mean is above the U-Net's at $\Theta=0.3$ ($0.053$ against $0.028$ in raw relative score error)
+and at $\Theta=1$ ($0.032$ against $0.021$): there 50 to 88\% of its fits select their last EM iteration, so the
+iteration budget binds, and some of them stall (\cref{app:em}). At $N=32{,}768$ ($\Theta=0.3$) the two are level,
+$0.013$ against $0.014$, each lower in 4 of 8 seeds, while the site energy is at $0.0026$. With $N=32$ the U-Net is worse
+than the linear denoiser in every cell (raw error $0.40$ to $0.51$).
 % src: experiments/registry/E33.json (design); jerome-call-2026-10-29-slide15.md (parameter counts)
 
 \paragraph{Temperature and potential.} For any kernel of the site-energy class, the bond variance and the site
@@ -323,21 +423,49 @@ $\hat V(\phi)=(2\hat\Theta/h)\hat f(\phi/s)+\text{const}$.
 % src: answers note Q8 (E33, E51)
 
 \begin{table}[h]
-  \caption{As \cref{tab:field}, from $M=128$ training sequences.}
+  \caption{As \cref{tab:field}, from $N=128$ training sequences.}
   \label{tab:field-128}
   \centering
   \small
-  \begin{tabular}{@{}lcccc@{}}
-    \toprule
-    $\Theta$ & 0.3 & 0.5 & 1 & 2\\
-    \midrule
-    site energy          & 0.139 & 0.269 & 0.534 & 0.630\\
-    tilted spline        & 0.218 & 0.454 & 1.110 & 1.478\\
-    log-linear 2-D       & 0.385 & --    & 1.337 & --\\
-    MDN                  & 0.468 & 0.900 & 1.724 & 2.457\\
-    shift mixture        & 1.018 & 1.039 & 1.187 & 1.278\\
-    best network         & 0.829 & 2.339 & 4.150 & 5.787\\
-    \bottomrule
-  \end{tabular}
-  % src: ~/Code/Thesis/jerome-call-2026-10-29-slide15.md, M = 128 table
+  \setlength{\tabcolsep}{3.5pt}
+  \input{figures/tab_field_128.tex}
+  % src: figures/tab_field_128.tex (tools/paper_figs/make_paper_figures.py::tab_field, N = 128)
 \end{table}
+
+\section{Other chains}
+\label{app:chains}
+
+\paragraph{Chains.} All nine are stationary with unit variance and lag-one correlation $0.85$, $L=32$, with parameters
+calibrated from the true kernels before any fit.
+\begin{itemize}
+\item \emph{Gaussian, Student-$t$, uniform}: $a_{k+1}=0.85\,a_k+\varepsilon_k$ with Gaussian, Student-$t$ ($\nu=4$) or
+  uniform innovations of variance $1-0.85^2$.
+\item \emph{Bimodal}: innovations $\tfrac12\Normal(m,s^2)+\tfrac12\Normal(-m,s^2)$ with $m^2=\kappa q$,
+  $s^2=(1-\kappa)q$, $q=1-0.85^2$ and $\kappa=0.6$.
+\item \emph{Skewed}: $a=(\sinh(\operatorname{asinh}z+0.7447)-m)/s$, with $z$ a Gaussian chain of lag-one correlation
+  $0.858$ and $m$, $s$ the mean and standard deviation of the transform.
+\item \emph{Tanh drift}: $a_{k+1}=1.3037\tanh(a_k)+0.4975\,\varepsilon_k$, which has two stable points and a bimodal
+  stationary law.
+\item \emph{Heteroscedastic}: $a_{k+1}=0.85\,a_k+s_0\sqrt{1+0.25\,a_k^2}\,\varepsilon_k$, $s_0^2=(1-0.85^2)/1.25$.
+\item \emph{Double well} and \emph{Pearson}: the overdamped Langevin diffusion in a double-well potential with barrier
+  2, observed every $0.3079$ time units, and the Pearson diffusion with a Student-$t$ ($\nu=6$) stationary law, observed
+  every $0.1624$; both with transition laws from the exact generator on a lattice of spacing $0.02$, then standardised.
+\end{itemize}
+
+\paragraph{Arms.} On the six chains without a dagger in \cref{tab:chains}: the shift mixture, the free mixture of
+\cref{app:field}, the neural energy kernel by EM with the optimiser restart of \cref{app:em}, the same family by
+maximum likelihood on the clean sequences, and the global MLP and window CNN of \cref{app:networks}. On the three
+others: the four shift bases of \cref{sec:families}, the shift mixture, the log-linear and neural energy kernels (first
+implementation), and the global MLP, window CNN, BiGRU and U-Net of \cref{app:networks}. The networks keep their Laplace
+configurations. Eight seeds, $N=32$ to $2048$, the noise levels and the error of \cref{sec:setting}.
+
+\paragraph{Results at other sizes.} On the bimodal chain every shift family is below the best network at every $N$, in
+at least 7 of 8 seeds. On the tanh-drift and heteroscedastic chains the four shift bases are at $0.98$ to $1.08$ times the
+error of the linear denoiser from $N=128$, while the better of the log-linear and neural kernels has a lower mean error
+than every shift family and every network from $N=512$. Inside the shift class the mixture is within $1.04$ of the best kernel learned
+from noisy data at $N=2048$. The free mixture is below the shift mixture on every chain outside the class (8 of 8 seeds at
+$N=2048$), and above the neural kernel on all of them but the double well.
+% src: tools/core/read_e57.py (E57, frozen 6 Nov 2026) P1-P4 and D2 (shift / linear floor 0.98-1.08 on tanh and
+% hetero); tools/core/read_e61.py (E61, frozen 6 Nov 2026) P2 ratios 1.00/1.04/1.00, P3 (free4 and energy below the
+% mixture 8/8 outside), D1 free4 vs energy at N=2048: skew 0.0520/0.0275, langevin 0.0683/0.0865, pearson 0.0377/0.0245;
+% chain parameters: experiments/registry/E57.json, E61.json (tools/core/calibrate_e57.py, calibrate_e61.py)

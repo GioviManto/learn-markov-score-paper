@@ -1,16 +1,8 @@
 \section{Application: the stochastic Allen--Cahn field}
 \label{sec:allen-cahn}
 
-\begin{figure*}[t]
-  \centering
-  \includegraphics{fig_field}
-  \caption{The Allen--Cahn chain. (a) Single-site law of the standardised field at the four temperatures.
-  (b) The tilt $\log g$ of the kernel at $\Theta=0.3$ against the quadratic of the Gaussian chain with the same
-  correlation. (c) One exact sample at $\Theta=0.3$; dotted lines mark the two wells.}
-  \label{fig:field}
-\end{figure*}
-
-The stochastic Allen--Cahn equation\note{cite} describes a scalar field relaxing in a double-well potential,
+The stochastic Allen--Cahn equation \cite{allen1979microscopic,dapratozabczyk2014} describes a scalar field relaxing
+in a double-well potential,
 \begin{equation}
   \partial_\tau\phi=\partial_x^2\phi-V'(\phi)+\sqrt{2\Theta}\,\eta,\qquad V(\phi)=\tfrac14(\phi^2-1)^2,
 \end{equation}
@@ -21,50 +13,51 @@ with space-time white noise $\eta$ at temperature $\Theta$. On a lattice of spac
 which is a nearest-neighbour chain, so everything above applies. Its kernel is a tilted random walk,
 $K(a'\mid a)\propto\Normal(a';a,\gamma)\,g(a')$, for the standardised field $a=\phi/s$. Unlike the Laplace chain, the
 \emph{shape} of the law of $a'$ depends on $a$: near zero it has two bumps, near a well it is one-sided. At low
-temperature the field sits in one well or the other, with sharp kinks between them (\cref{fig:field}). We use four
+temperature the field sits in one well or the other, with sharp kinks between them (\cref{fig:field} in \cref{app:field}). We use four
 temperatures, $\Theta=0.3$, $0.5$, $1$ and $2$, chains of $L=32$ sites, and a lattice spacing chosen so that
 neighbouring sites have correlation $0.85$, as on the Laplace chain.
 % src: outputs/E32/cells.json (rho1 = 0.848 at T0.3_h1, 0.850 at the iso cells)
 
 \begin{table}[t]
-  \caption{Allen--Cahn field: relative score error divided by that of the best linear denoiser, from $M=2048$
-  training sequences, mean over 16 seeds. Parameters in brackets. Dashes: not run.}
+  \caption{Allen--Cahn field: relative score error divided by that of the best linear denoiser, from $N=2048$
+  training sequences; mean over 16 seeds (8 for the neural energy kernel and the U-Net). The kernels are learned by EM
+  from one noisy view per sequence. Best of four: a window CNN and a transformer, each trained by implicit and by
+  denoising score matching on the same noisy views. Dashes: not run.}
   \label{tab:field}
   \centering
   \small
-  \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{@{}lcccc@{}}
-    \toprule
-    $\Theta$ & 0.3 & 0.5 & 1 & 2\\
-    \midrule
-    site energy (5)          & 0.033 & 0.072 & 0.141 & 0.169\\
-    tilted spline (25)       & 0.060 & 0.134 & 0.280 & 0.428\\
-    log-linear 2-D (100)     & 0.184 & --    & 0.428 & --\\
-    MDN (1{,}516)            & 0.228 & 0.422 & 0.738 & 0.838\\
-    shift mixture (25)       & 1.004 & 1.004 & 1.014 & 1.021\\
-    best network             & 0.484 & 1.174 & 2.157 & 3.044\\
-    \bottomrule
-  \end{tabular}
-  % src: ~/Code/Thesis/jerome-call-2026-10-29-slide15.md (frozen E33 hpc_E33k/q/n, E43 hpc_E43a, floor hpc_E33o)
-  % pending: neural energy kernel row (E55) and its U-Net comparison
+  \setlength{\tabcolsep}{3.5pt}
+  \input{figures/tab_field.tex}
+  % src: figures/tab_field.tex = tools/paper_figs/make_paper_figures.py::tab_field: E33 (hpc_E33k/q/n, floor hpc_E33o)
+  % and E60 (hpc_E60_a/b) through tools/core/read_e60.py, E43 (hpc_E43a), E55 finished cells (hpc_E55_kern_*,
+  % hpc_E55_nets_*, frozen 7 Nov 2026; seeds 0-7). Reproduces the typed slide-15 rows exactly.
 \end{table}
 
-\Cref{tab:field} compares kernel families with the best network (the better of a window CNN and a transformer, each
-trained with two score-matching losses). Every family whose conditional law depends on $a$ beats the best network at
-every temperature, including two that know nothing about the field: the log-linear kernel ($0.18$ against $0.48$ at
-$\Theta=0.3$) and a mixture density network. The same holds with $M=128$ training sequences (\cref{app:field}).
-% src: slide15.md M=128 table: every nonlinear family < best network in every cell
-The shift mixture of \cref{sec:families} is no better than the linear denoiser. It does not collapse: all eight
-components are used. But a shift kernel has a linear drift and the same innovation law at every $a$, so the best
-member of the family is close to a Gaussian chain, and BP with a Gaussian kernel is linear. The family has to be able
-to represent the data; a regulariser would not help.
-% src: slide15.md: effective number of components exp H(pi) = 7.8 of 8 (median), max weight 0.18, fitted excess kurtosis -0.03 to -0.04
+\Cref{tab:field} compares kernel families with networks. Every family whose conditional law depends on $a$ beats the
+best of four networks trained from the same noisy views in every cell, including four that know nothing about the
+field: the neural energy kernel, a free mixture of four two-dimensional Gaussians for the pair $(a,a')$, the log-linear
+kernel and a mixture density network. The same holds with $N=128$ (\cref{app:field}). The shift mixture of
+\cref{sec:families} is no better than the linear denoiser. It does not collapse, since all eight components are used,
+but its best member is close to a Gaussian chain, as on the chains outside its class (\cref{sec:chains}).
+% src: slide15.md / E33: effective number of components exp H(pi) = 7.8 of 8 (median), max weight 0.18; E60 P5 free_C4
+% below the best network 16/16 in every cell at N=128 and 2048
 
-The data efficiency shows across sizes. With 128 sequences the site-energy kernel ($0.14$ at $\Theta=0.3$) is still
-3.5 times better than the best network with 2048 ($0.48$).
-% src: slide15.md point 4
-Because the site energy has the form of the lattice action, it also returns the physical parameters: the temperature
-comes out as $\hat\Theta=\hat\gamma s^2/h$, with seed means of $\hat\Theta/\Theta$ between $0.9995$ and $1.0068$ over
-six cells, and the potential $V$ up to a constant.
-% src: answers note Q8 (E33, six cells, 16 seeds)
-\pending{E55: the neural energy kernel against a DDPM U-Net on the same cells.}
+A standard diffusion model sees more. A DDPM U-Net with $1.2\times10^{7}$ parameters, trained by denoising score
+matching on the clean sequences with fresh noise at every step (\cref{app:field}), is a much stronger network: $0.22$
+against $0.48$ at $\Theta=0.3$. The neural energy kernel, with 337 to 1{,}185 parameters and one noisy view per sequence,
+is still below it in 30 of 32 paired seeds, at $0.12$ to $0.66$ of the linear floor against $0.22$ to $0.95$. With
+$N=8192$ the U-Net reaches the kernel's $N=2048$ error in every cell; with $N=128$ it is worse than the linear denoiser
+in every cell, and three to six times worse than the neural kernel.
+% src: E55 finished cells (scratch read 7 Nov 2026, scratchpad tools/e55_descriptive.py): wins energy < unet at N=2048
+% 8/8/8/6; ratios to floor from figures/tab_field.tex; unet raw at 8192 0.0276/0.0246/0.0209/0.0198 vs energy at 2048
+% 0.0328/0.0247/0.0215/0.0273; N=128 tab_field_128 unet 1.163/2.850/5.633/8.040 vs energy 0.354/0.725/1.152/1.365.
+% E55's registered verdicts await its sixth E33 cell (L = 128, running); reader gate 1 fails on round-off (cell scale
+% differs by 1e-15 between CPU and GPU nodes), see the 7 Nov 2026 report.
+
+The site-energy kernel $K(a'\mid a)\propto\exp(-(a'-a)^2/(2\gamma)-f(a)-f(a'))$, with $f$ a quartic, has the form of
+the lattice action. It is the best model in every cell and at every $N$: with 128 sequences it is still $3.5$ times more
+accurate than the best of the four networks with 2048. It also returns the physical parameters: the temperature comes
+out as $\hat\Theta=\hat\gamma s^2/h$, with seed means of $\hat\Theta/\Theta$ between $0.9995$ and $1.0068$ over six
+cells, and the potential $V$ up to a constant.
+% src: tab_field_128 site energy 0.139 vs tab_field best of four 0.484 at Theta=0.3 (3.48x); answers note Q8 (E33, six
+% cells, 16 seeds)

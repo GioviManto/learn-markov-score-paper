@@ -55,9 +55,13 @@ then in Overleaf: Menu → GitHub → Pull GitHub changes into Overleaf. Figures
 (`fig_families`, `fig_families_error`, the EM curve in `fig_em_dynamics`) fill in when E56's outputs are fetched.
 
 ## Before submission
-- Table 1 (Allen–Cahn) is typed from `~/Code/Thesis/jerome-call-2026-10-29-slide15.md` (frozen E33/E43 rows). It
-  should come from a generator reading the frozen outputs, like every other table.
-- The EM step counts (80 / 229 / 638 updates, thesis exp_27) were taken from notes, not from a reader script.
+- The draft was finished on 7 Nov 2026 (E56, E57, E60, E61, E62 and the finished E55 cells written in). Its three tables
+  (`figures/tab_field.tex`, `tab_field_128.tex`, `tab_chains.tex`) are generated from the frozen outputs by
+  `tools/paper_figs/make_paper_figures.py tab_field tab_chains`, like the figures; the old typed Allen–Cahn table and
+  the exp_27 step counts from notes are gone (step counts now come from `tools/core/read_e56.py`).
+- E55 (neural kernel against the DDPM U-Net) was still running for its L = 128 and L = 512 cells on 7 Nov; the draft
+  uses its five finished cells. When the rest lands: freeze, run `tools/core/read_e55.py`, and check the U-Net rows of
+  Table 2 and the sentences of Sec. 6 and App. G against the reader.
 - Overleaf compiles with pdfLaTeX in Times, which is what the figures use. A local tectonic build falls back to Latin
   Modern and shows "Title Suppressed Due to Excessive Size" in the running head; Overleaf's PDF is the faithful one.
 
