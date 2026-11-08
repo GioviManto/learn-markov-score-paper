@@ -1,0 +1,276 @@
+\section{Learning the kernel}
+\label{sec:laplace}
+
+In practice the kernel is unknown and has to be learned from data. We work on the Laplace chain, where the exact score
+is known and not linear, and compare learning the kernel with training neural denoisers by denoising score matching.
+
+\subsection{Expectation--maximisation through BP}
+\label{sec:em}
+
+\begin{figure}[t]
+  \centering
+  \input{figures/draft/fig_em_loop.tikz}
+  \caption{Learning and using the kernel. Learn: BP with the current kernel gives the posterior of every pair of
+  neighbouring sites, summed into the expected transition counts $\Xi$ (E-step); the kernel is refitted to these
+  counts (M-step); repeat. Use: BP with the learned kernel gives $\mathbb E[\mathbf a\mid\mathbf x]$, and so the score,
+  at any noise level. BP enters the learning only through $\Xi$, so nothing is differentiated through BP.}
+  \label{fig:em-loop}
+\end{figure}
+
+Let $K_\theta$ be a family of kernels and $\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(N)}$ noisy training sequences, each
+observed at a noise level $t_d$. The clean sequences are latent variables, and the likelihood of the data is
+\begin{equation}
+    p_\theta(\mathbf{x}^{(d)})
+    =
+    \int
+    p_\theta(\mathbf{a})
+    p_{t_d}(\mathbf{x}^{(d)}\mid\mathbf{a})
+    \,d\mathbf{a}.
+\end{equation}
+This integral has no closed form, but BP computes it on the chain, from the normalising constants of the forward
+messages (\cref{app:bp}).
+
+We maximise it with expectation--maximisation (EM) \cite{dempster1977maximum}, as in the Baum--Welch algorithm for
+hidden Markov models \cite{baum1970,rabiner1989tutorial}: the clean sequence is the hidden chain and the diffusion noise
+is the emission (\cref{fig:em-loop}). The E-step uses the current parameters $\theta_{\mathrm{old}}$ to infer the
+posterior of each pair of neighbouring sites,
+\begin{equation}
+    \xi_k^{(d)}(a,a')
+    =
+    p_{\theta_{\mathrm{old}}}
+    \left(
+        a_k=a,\,
+        a_{k+1}=a'
+        \mid \mathbf{x}^{(d)}
+    \right),
+\end{equation}
+which the forward and backward messages give directly:
+\begin{equation}
+    \xi_k^{(d)}(a,a')
+    \propto
+    f_k(a)\,
+    K_{\theta_{\mathrm{old}}}(a'\mid a)\,
+    \ell_{t_d}(x_{k+1}^{(d)}\mid a')\,
+    b_{k+1}(a').
+    \label{eq:pairwise-posterior}
+\end{equation}
+Summing over sequences and links gives the expected transition counts
+\begin{equation}
+    \Xi(a,a')
+    =
+    \sum_{d=1}^{N}
+    \sum_{k=1}^{L-1}
+    \xi_k^{(d)}(a,a'),
+\end{equation}
+the expected number of transitions from $a$ to $a'$ in the clean data. The M-step then maximises
+\begin{equation}
+    Q(\theta\mid\theta_{\mathrm{old}})
+    =
+    \iint
+    \Xi(a,a')\,
+    \log K_\theta(a'\mid a)
+    \,da\,da'
+    \label{eq:em-objective}
+\end{equation}
+over $\theta$. With clean sequences nothing is hidden: $\Xi$ is just the histogram of the observed transitions and the
+M-step is ordinary maximum likelihood. With noisy sequences the counts are soft, and BP provides them.
+
+Why does this work? By Fisher's identity \cite{louis1982,cappe2005}, the gradient of $Q$ at $\theta_{\mathrm{old}}$ is
+the gradient of the log-likelihood,
+\begin{equation}
+    \left.
+    \nabla_\theta Q(\theta\mid\theta_{\mathrm{old}})
+    \right|_{\theta=\theta_{\mathrm{old}}}
+    =
+    \nabla_\theta
+    \log p_\theta(\mathbf{x})
+    \big|_{\theta=\theta_{\mathrm{old}}},
+\end{equation}
+so each M-step moves uphill and the likelihood never decreases \cite{dempster1977maximum,wu1983}. Two practical
+consequences follow. BP enters the M-step only through $\Xi$, which stays fixed while $\theta$ moves, so there is no
+need to differentiate through the messages: the gradient only goes through the kernel and its normalisation. And the
+noise level appears only in the E-step, so the kernel is learned once and then gives the score at any noise level.
+
+\subsection{Kernel families}
+\label{sec:kernel-families}
+
+We first use families with the shift structure $a_{k+1}=\alpha a_k+\varepsilon_k$, where the noise $\varepsilon_k$ does
+not depend on $a_k$. One option is a mixture of $C=8$ Gaussians for the noise,
+\begin{equation}
+    K_\theta(a'\mid a)
+    =
+    \sum_{c=1}^{C}
+    \pi_c\,
+    \mathcal{N}
+    \left(
+        a'-\alpha a;\nu_c,s_c^2
+    \right),
+\end{equation}
+with weights $\pi_c$ summing to one. It has 25 parameters and an almost closed-form M-step, and it learns $\alpha$
+quickly (to $0.1\%$ from 512 sequences), but it can only approximate the peak of the Laplace law by stacking Gaussians.
+A second option writes the logarithm of the noise density as a truncated Fourier series, again with 25 parameters; this
+keeps the kernel positive and makes the M-step concave. Other bases behave the same way (\cref{app:families}).
+% src: thesis exp_18: alpha within 0.1% from N=512 (2.4% at 128)
+
+Both families assume the shift structure. We therefore also use a kernel that assumes nothing beyond the Markov
+property, a neural energy kernel, which we simply call the neural kernel:
+\begin{equation}
+    K_\theta(a'\mid a)
+    =
+    \frac{
+        \exp[-E_\theta(a,a')]
+    }{
+        Z_\theta(a)
+    },
+    \label{eq:neural-kernel}
+\end{equation}
+with $Z_\theta(a)=\int\exp[-E_\theta(a,u)]\,du$ computed on the grid. $E_\theta$ is a small network with two hidden
+layers of 16 units, 337 parameters in all, and the normalisation makes $K_\theta$ a valid transition density for any
+weights.
+
+With noisy sequences the neural kernel is trained by the same EM: BP gives $\Xi$ in the E-step, and the M-step takes
+ten Adam steps \cite{kingma2015adam} on \cref{eq:em-objective}, differentiating only through the kernel. With clean
+sequences it can instead be fitted by maximising the likelihood of the observed transitions,
+\begin{equation}
+    \mathcal{L}(\theta)
+    =
+    \sum_{d=1}^{N}
+    \sum_{k=1}^{L-1}
+    \log K_\theta
+    \left(
+        a_{k+1}^{(d)}
+        \mid a_k^{(d)}
+    \right),
+    \label{eq:neural-clean-ml}
+\end{equation}
+with no E-step at all. The same kernel can therefore be learned from noisy sequences by EM or from clean ones by
+maximum likelihood.
+
+\subsection{Against neural denoisers}
+\label{sec:neural-denoisers}
+
+\begin{figure}[t]
+  \centering
+  \input{figures/draft/fig_routes.tikz}
+  \caption{Two ways to learn from the same clean sequences. Left: fit the kernel by maximum likelihood
+  (\cref{eq:neural-clean-ml}); BP then gives the score at any noise level. Right: train a network by denoising score
+  matching on noisy copies of the sequences (\cref{eq:dsm-objective}); it gives the score at the noise levels it was
+  trained on. The kernel is a function of two numbers; the network has to learn the whole map from $(\mathbf x,t)$ to
+  the score.}
+  \label{fig:routes}
+\end{figure}
+
+We compare the learned kernels with neural denoisers trained by denoising score matching (DSM)
+\cite{hyvarinen2005estimation,vincent2011connection}. These do not model the transition law; they learn the score
+directly from noisy sequences. For a clean sequence $\mathbf a$ the noisy version is
+\begin{equation}
+    \mathbf{x}
+    =
+    e^{-t}\mathbf{a}
+    +
+    \sqrt{\Delta_t}\boldsymbol{\xi},
+    \qquad
+    \boldsymbol{\xi}
+    \sim
+    \mathcal{N}(\mathbf{0},\mathbf{I}),
+\end{equation}
+and a network $\boldsymbol{\epsilon}_\phi(\mathbf{x},t)$ is trained to predict the added noise by minimising
+\begin{equation}
+    \mathcal{L}_{\mathrm{DSM}}(\phi)
+    =
+    \mathbb{E}_{\mathbf{a},t,\boldsymbol{\xi}}
+    \left[
+        \left\|
+            \boldsymbol{\xi}
+            -
+            \boldsymbol{\epsilon}_\phi
+            (\mathbf{x},t)
+        \right\|^2
+    \right],
+    \label{eq:dsm-objective}
+\end{equation}
+which gives the score estimate $\widehat{\mathbf{S}}_t(\mathbf{x})=-\boldsymbol{\epsilon}_\phi(\mathbf{x},t)/\sqrt{\Delta_t}$.
+
+We use a global MLP, which knows nothing about locality, and a window CNN, which only looks at nearby sites (26{,}016
+and 5{,}505 parameters). Both are trained on the clean sequences with fresh noise at every step (\cref{fig:routes}),
+with hyperparameters chosen on separate seeds (\cref{app:networks}, which also has four other architectures). The
+comparison is between two approaches: learning a small transition law and letting BP do the inference, or learning the
+whole denoiser from examples. In the first the Markov structure is built into the model; in the second the network has
+to find it in the data.
+% src: outputs/E03/winners.json, confirm.csv n_params (mlp 26,016; window 5,505)
+
+\subsection{Results on the Laplace chain}
+\label{sec:results}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics{fig_results}
+  \caption{Relative score error against the number of training sequences $N$. (a) Laplace chain, 16 seeds.
+  (b) Allen--Cahn field at $\Theta=0.3$ (\cref{sec:allen-cahn}), 8 seeds. Filled markers: kernels learned by EM from
+  noisy sequences and used inside BP, the mixture of 8 Gaussians and the neural kernel. Open markers, dashed: the neural
+  kernel fitted by maximum likelihood on the clean sequences. Global MLP and window CNN: denoising score matching on the
+  clean sequences. Dotted: the best linear denoiser. Medians over seeds; on the Laplace chain the EM runs stop at
+  $N=2048$.}
+  \label{fig:results}
+  % src: tools/paper_figs/figs_v2.py::fig_results. (a) E02a capacity.csv (em_bp, C=8), E56 kernels (energy), E58
+  % (energy_h16, mlp, window, lmmse; E58's gate G2 reproduces E03's networks at N <= 2048). (b) E33 via read_e60
+  % (em_mixture, raw_risk), E55 kernels (em_energy, selection=risk), E58 (energy_h16, mlp, window, lmmse); seeds 0-7.
+\end{figure*}
+
+We use the Laplace chain with $\alpha=0.85$ and $L=32$, and twelve noise levels between $t=0.05$ and $t=3$. Each model
+is trained on $N$ sequences, from 32 to 2{,}048 (up to 32{,}768 with clean data), with 16 seeds. EM sees one noisy copy
+of each training sequence, at one of the twelve levels; the networks see the clean sequences and draw fresh noise at
+every step, which favours the networks. We measure the relative score error $\|\widehat{\mathbf S}-\mathbf
+S\|/\|\mathbf S\|$ on 2{,}048 test sequences at all twelve levels, where $\mathbf S$ is the exact score from BP with the
+true kernel. Every model keeps the checkpoint with the lowest error on separate validation sequences.
+
+\Cref{fig:results}a shows the result. The mixture learned by EM, with 25 parameters, has the lowest error at every $N$,
+from $0.099$ with 32 sequences to $0.023$ with 2{,}048. The global MLP is 6 to 10 times worse and the window CNN 2 to 6
+times worse, in every seed. The CNN barely improves with more data and stays near $0.12$, not far from the best linear
+denoiser ($0.17$): this is the locality limit of \cref{sec:gaussian}. The Fourier kernel is close to the mixture, 1.1 to
+1.35 times its error. The neural kernel needs more data than the 25-parameter families, but it reaches the mixture with
+2{,}048 sequences ($0.024$ against $0.023$), and it beats both networks in every seed at every $N$.
+% src: E02a em_bp seed means 0.0989 ... 0.0231; per-seed mean ratios (E03, paired) MLP 5.79-9.85, window 2.07-5.58,
+% 16/16 every N; window 0.1181 at 2048; E58 lmmse 0.1672; E56 fourier/mixture 1.08-1.35; energy 0.0235 at 2048,
+% wins vs MLP and window 16/16 at every N
+
+With clean sequences the neural kernel is fitted by maximum likelihood (open markers). It is then about three times
+more accurate than from noisy sequences, and from only 128 clean sequences it beats the window CNN trained on 32{,}768.
+Now the kernel and the networks see exactly the same data, and the kernel still wins. It also wins when it is trained
+with the networks' own objective, DSM through a differentiable BP (\cref{app:networks}): the gain comes from the
+model, not only from how it is trained.
+% src: E58 (read_e58): E56 energy / E58 energy_h16 per-seed ratio 2.77-3.50; energy_h16 0.0251 at N=128 vs window 0.1162
+% at N=32768; E66 (read_e66) P1: BP-DSM kernel below the best of six networks 16/16 at every N
+
+\subsection{Step efficiency}
+\label{sec:steps}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics{fig_steps}
+  \caption{Step efficiency on the Laplace chain with $N=2048$: test score error against the number of parameter
+  updates. One update is an EM iteration of the mixture, one Adam step of the neural kernel (ten per EM iteration), or
+  one SGD step of a network. Median over 16 seeds.}
+  \label{fig:steps}
+  % src: tools/paper_figs/figs_v2.py::fig_steps on reports/core/e63_curves_wall.csv (E65 refits, frozen 4 Nov 2026)
+\end{figure}
+
+The kernels also need far fewer parameter updates (\cref{fig:steps}). With 2{,}048 sequences the mixture passes the
+final error of the window CNN after 20 EM iterations and is close to its own best after about 160. The neural kernel
+passes the CNN's final error after 400 Adam steps from noisy data, and after 200 from clean data. The CNN needs all
+of its 32{,}000 steps to get there.
+% src: fig_steps printout (medians, E65): em_bp below 0.1176 at 20, within 10% of its minimum at 160; energy x10 below
+% 0.1176 at 400; clean energy x10 at 200; window final 0.1176 at 32,000
+Fewer updates are not always less time, because each EM iteration runs BP over all the training sequences. From clean
+data the neural kernel is also faster in wall-clock time than both networks; from noisy data the networks reach their
+own, much higher, error first (\cref{app:compute}).
+% src: e63_curves_wall.csv at N = 2048: clean kernel first vs window and MLP 16/16; noisy kernel first 2/16
+
+\subsection{When the data are not first-order Markov}
+\label{sec:nonmarkov}
+
+BP with a first-order kernel assumes first-order Markov data. When the data are not, the advantage over the networks
+shrinks with the distance between the data and the closest first-order chain, and the networks win once this distance
+is above about $10^{-2}$ nats per site (\cref{app:nonmarkov}). For a second-order chain there is a simple fix: pairs of
+neighbouring sites form a first-order chain again, so BP on pairs is exact, and EM on pairs brings the advantage back.
+% src: thesis exp_21_clean + E62: break-even delta 1-4e-2; E62 pair state below the best network >= 7/8 at every phi2

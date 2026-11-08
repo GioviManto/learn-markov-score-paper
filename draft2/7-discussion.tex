@@ -1,0 +1,29 @@
+\section{Discussion}
+\label{sec:discussion}
+
+For Markov sequences, the structure a denoiser can use is not in the score, which diffusion makes non-local, but in the
+posterior, which stays a tree. BP turns a kernel, a function of two numbers, into the exact score at every noise level,
+and EM learns the kernel from noisy data with BP as its E-step, without differentiating through BP. A small neural
+kernel removes the need to choose a family: it matches the Gaussian mixture where the mixture is right, and it stays
+accurate where the mixture falls back to the linear denoiser.
+
+\paragraph{What this suggests for diffusion models.} Learn the local law and infer globally. For data that are Markov
+in some ordering, one learned kernel gives the score at every noise level, and a kernel learned on short sequences works
+unchanged on long ones, at a cost linear in their length. For data that are not, a kernel could handle the Markov part
+exactly and a network the rest.
+
+\paragraph{Limits.} The Markov order has to be known: on pairs of sites a grid step costs $O(N_g^3)$ instead of
+$O(N_g^2)$. Each site carries one number here; a state with $d$ numbers needs a grid of $N_g^d$ points. The graph must be
+a tree, and the grid limits how small $t$ can be. Finally, a large network closes the gap when data are plentiful, so the
+gain we measure is in data efficiency, which matters most where scientific data are scarce.
+
+\paragraph{Related work.} EM with forward--backward as the E-step is the classical way to fit hidden Markov and
+state-space models \cite{baum1970,rabiner1989tutorial,shumway1982em,cappe2005}, and grids for non-Gaussian filtering go
+back to \cite{kitagawa1987}; here the hidden chain is the clean data, the emission is the diffusion noise, and the
+fitted model is used for its score. Diffusion models can also be trained from corrupted data
+\cite{daras2023ambient,rozet2024learning,bai2024em}, but they learn a network score. Analytic and structured denoisers
+\cite{kamb2024analytic,kadkhodaie2024generalization}, belief propagation on hierarchical data
+\cite{garnierbrun2024transformers,sclocchi2025phase,mei2024unets} and the statistical physics of diffusion
+\cite{biroli2023generative,biroli2024dynamical,achilli2025memorization,bonnaire2025memorize,garnierbrun2026biased}
+ask what structure a denoiser exploits. Markov sequences are the simplest non-Gaussian case in which the exact denoiser
+is computable and can be learned from noisy data alone.

@@ -1,0 +1,14 @@
+Diffusion models learn to denoise data at every noise level, and the object they need is the score, an affine function
+of the posterior mean. We ask how to compute it for Markov sequences. In the Gaussian case the score is linear and set
+by a precision matrix, and we see how noise quickly erases its Markov structure. In the Laplace case the score has no
+closed form, but the posterior is a chain, hence a tree, so belief propagation (BP) gives the exact score. Its messages
+are probability densities: we discretise them on a grid and test the discretisation against the Gaussian closed form.
+When the transition kernel is unknown we learn it, with expectation--maximisation from noisy sequences or with maximum
+likelihood from clean ones, and BP turns it into the score at every noise level. The kernel can be a small neural
+network. On the Laplace chain, kernels learned this way give scores 2 to 10 times more accurate than a global MLP and a
+window CNN trained by denoising score matching, with far fewer parameter updates. On the stochastic Allen--Cahn field,
+where the shape of the transition law changes with the state, a Gaussian-mixture kernel is no better than a linear
+denoiser, while the neural kernel stays accurate.
+% src: Laplace, per-seed mean ratios over N = 32..2048, 16 seeds, paired (E02a, E56, E03): window CNN / kernel
+% 1.84-5.58, global MLP / kernel 5.18-9.85. Allen-Cahn Theta = 0.3, N = 2048: E33 mixture 0.2705 vs linear 0.2692;
+% E55 neural kernel 0.0328, 2.6 times below the window CNN (E58).
