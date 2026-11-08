@@ -4,9 +4,9 @@
     arr/.style={-{Stealth[length=2mm]},thick},
     lab/.style={font=\footnotesize,align=center,inner sep=2pt}]
   \node[data] (a) at (0,0) {clean sequences};
-  \node[box] (k) at (-1.9,-1.75) {kernel\\ $K_\theta(a'|a)$};
+  \node[box] (k) at (-1.9,-1.75) {kernel\\ $\widehat K_\theta(a'|a)$};
   \node[box] (n) at (1.9,-1.75) {network\\ $\boldsymbol{\epsilon}_\phi(\mathbf{x},t)$};
-  \node[box] (s1) at (-1.9,-3.5) {score\\ $\widehat{\mathbf{S}}_t(\mathbf{x})$};
+  \node[box] (s1) at (-1.9,-3.5) {score\\ $\mathbf{S}_t(\mathbf{x})$};
   \node[box] (s2) at (1.9,-3.5) {score\\ $\widehat{\mathbf{S}}_t(\mathbf{x})$};
   \draw[arr] (a.west) -| node[lab,left,pos=0.75]{max.\ likelihood} (k.north);
   \draw[arr] (a.east) -| node[lab,right,pos=0.75]{noise, DSM} (n.north);

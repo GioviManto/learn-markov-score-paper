@@ -155,8 +155,8 @@ maximum likelihood.
   \caption{Two ways to learn from the same clean sequences. Left: fit the kernel by maximum likelihood
   (\cref{eq:neural-clean-ml}); BP then gives the score at any noise level. Right: train a network by denoising score
   matching on noisy copies of the sequences (\cref{eq:dsm-objective}); it gives the score at the noise levels it was
-  trained on. The kernel is a function of two numbers; the network has to learn the whole map from $(\mathbf x,t)$ to
-  the score.}
+  trained on. Only the kernel is estimated on the left: the score then follows exactly from BP, up to the grid and to the
+  error of $\widehat K_\theta$. On the right the network estimates the score itself.}
   \label{fig:routes}
 \end{figure}
 

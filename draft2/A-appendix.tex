@@ -2,7 +2,7 @@
 \label{app:gaussian-laplace}
 
 \paragraph{How non-local the Gaussian score gets.} \Cref{fig:locality-curve} follows the part of $\mathbf Q_t$ outside
-the tridiagonal band as $t$ grows. It is zero at $t=0$, largest at $t^\star\simeq0.075$, and it vanishes again at large
+the tridiagonal band as $t$ grows. It is zero at $t=0$, largest at $t^{*}\simeq0.075$, and it vanishes again at large
 $t$, where $\mathbf Q_t$ tends to the identity. A denoiser that only sees a window of $r$ neighbours on each side cannot
 reach the exact score even with unlimited data: its best relative error is $0.20$, $0.089$, $0.029$ and $0.0066$ for
 $r=1$, 2, 4 and 8.
@@ -12,7 +12,7 @@ $r=1$, 2, 4 and 8.
   \centering
   \includegraphics{fig_locality_curve}
   \caption{Size of $\mathbf Q_t$ outside the tridiagonal band, relative to the nearest-neighbour entries of
-  $\mathbf Q_0$, against $t$ (Gaussian chain, $\alpha=0.85$, $L=24$). It peaks at $t^\star\simeq0.075$.}
+  $\mathbf Q_0$, against $t$ (Gaussian chain, $\alpha=0.85$, $L=24$). It peaks at $t^{*}\simeq0.075$.}
   \label{fig:locality-curve}
 \end{figure}
 

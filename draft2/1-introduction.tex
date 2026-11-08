@@ -6,9 +6,10 @@ models for pictures \cite{rombach2022latent,betker2023dalle3}, videos \cite{veo3
 \cite{abramson2024alphafold3} and many other kinds of data. They reverse a stochastic differential equation
 \cite{anderson1982reverse,ho2020denoising,song2021scorebased} using the score
 $\mathbf{s}_t(\mathbf{x})=\nabla_{\mathbf{x}}\log p_t(\mathbf{x})$, which can be rewritten as a posterior mean
-\cite{robbins1956empirical,vincent2011connection,efron2011tweedie}. Much has been learned about how these models work:
-they go through distinct dynamical regimes \cite{biroli2023generative,biroli2024dynamical,achilli2026speciation}, they
-generalise instead of memorising for reasons that are now partly understood
+\cite{robbins1956empirical,vincent2011connection,efron2011tweedie}. Much has been learned about how these models work.
+They go through distinct dynamical regimes \cite{biroli2023generative,biroli2024dynamical,achilli2026speciation}, which
+become a cascade of speciations when the data have long-range correlations \cite{garnierbrun2026foam}. They generalise
+instead of memorising for reasons that are now partly understood
 \cite{kadkhodaie2024generalization,achilli2025memorization,bonnaire2025memorize}, and their generalisation can be biased
 \cite{garnierbrun2026biased}.
 
