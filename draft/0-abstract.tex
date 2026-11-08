@@ -1,25 +1,14 @@
-A diffusion model is a denoiser trained at every noise level. When the data are first-order Markov sequences, such as
-time series or one-dimensional physical fields, we ask what a denoiser gains from this structure and how it should use
-it. The structure is not inherited by the score: for a Gaussian chain the precision matrix of the noisy data, tridiagonal
-for clean data, fills in at intermediate noise. It survives in the posterior. A Markov chain observed through independent
-noise is a tree, so belief propagation (BP) gives the exact posterior mean, and hence the exact score, at every noise
-level once the transition kernel is known. Learning the denoiser thus reduces to learning a function of two variables,
-which we do by expectation--maximisation with BP as the E-step, from noisy sequences alone and without differentiating
-through BP. On a chain with Laplace innovations, kernels learned in this way give scores 2.1 to 2.8 times more accurate
-than the best of six neural denoisers trained on the same data. A neural energy kernel, which assumes nothing beyond the
-Markov property, matches the best hand-designed family and beats every network in at least 15 of 16 seeds at every
-training-set size. On nine other chains, kernel families with a fixed innovation law fall to the error of a linear
-denoiser once the chain leaves their class, while the neural kernel does not. The advantage shrinks as the data depart
-from the Markov property, at a rate set by their distance to the closest first-order chain, and BP on pairs of sites
-restores it for a second-order chain. On the stochastic Allen--Cahn field, the neural kernel, with at most 1{,}185
-parameters, beats a diffusion U-Net with $1.2\times10^{7}$ parameters in 30 of 32 paired seeds at 2{,}048 training
-sequences, and a five-parameter kernel with the form of the lattice action recovers the temperature to within one
-percent.
-% src: 2.1-2.8: reports/paper-figures/README.md (E02a em_bp vs E03 networks, paired, 16 seeds, N=32..2048)
-% src: neural energy kernel: tools/core/read_e56.py (E56 frozen 1 Nov 2026): energy 0.0235 vs em_bp 0.0231 at N=2048;
-%      paired wins against each of E03's six networks 16/16 at every N except BiGRU at N=512 (15/16)
-% src: nine chains: figures/tab_chains.tex (tools/paper_figs/make_paper_figures.py::tab_chains on frozen E57 and E61)
-% src: second-order chain: tools/core/read_e62.py (E62 frozen 6 Nov 2026)
-% src: U-Net: E55 finished cells (frozen 7 Nov 2026, not yet read against the predictions), seeds 0-7, N=2048: energy below U-Net 8+8+8+6 of 32;
-%      n_params em_energy 337 (1,185 at Theta=0.5), unet 11,774,977
-% src: temperature: E33 (Theta-hat/Theta 0.9995-1.0068, answers note Q8)
+Diffusion models learn to denoise data at every noise level, and the object they need is the score, an affine function
+of the posterior mean. We ask how to compute it for Markov sequences. In the Gaussian case the score is linear and set
+by a precision matrix, and we see how noise quickly erases its Markov structure. In the Laplace case the score has no
+closed form, but the posterior is a chain, hence a tree, so belief propagation (BP) gives the exact score. Its messages
+are probability densities: we discretise them on a grid and test the discretisation against the Gaussian closed form.
+When the transition kernel is unknown we learn it, with expectation--maximisation from noisy sequences or with maximum
+likelihood from clean ones, and BP turns it into the score at every noise level. The kernel can be a small neural
+network. On the Laplace chain, kernels learned this way give scores 2 to 10 times more accurate than a global MLP and a
+window CNN trained by denoising score matching, with far fewer parameter updates. On the stochastic Allen--Cahn field,
+where the shape of the transition law changes with the state, a Gaussian-mixture kernel is no better than a linear
+denoiser, while the neural kernel stays accurate.
+% src: Laplace, per-seed mean ratios over N = 32..2048, 16 seeds, paired (E02a, E56, E03): window CNN / kernel
+% 1.84-5.58, global MLP / kernel 5.18-9.85. Allen-Cahn Theta = 0.3, N = 2048: E33 mixture 0.2705 vs linear 0.2692;
+% E55 neural kernel 0.0328, 2.6 times below the window CNN (E58).

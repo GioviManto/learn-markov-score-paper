@@ -3,45 +3,65 @@
 
 \begin{figure}[t]
   \centering
-  \input{figures/fig_factor_graph.tikz}
-  \caption{Factor graph of the posterior $p(a\mid x)$. Black squares are factors: the kernel $K$ between neighbouring
-  sites and the noise likelihood $\ell_t$ at each site. The graph has no loop, so the forward and backward messages
-  $\mu_{\to}$ and $\mu_{\leftarrow}$ of belief propagation give the exact marginals.}
+  \input{figures/draft/fig_factor_graph.tikz}
+  \caption{Factor graph of the posterior $p_t(\mathbf a\mid\mathbf x)$ of \cref{eq:posterior_chain}. White circles are
+  the clean values $a_k$, grey circles the noisy observations $x_k$, which are known. Black squares are the factors: the
+  law $\mu$ of the first site, the kernel $K(a_{k+1}\mid a_k)$ between neighbours and the noise term
+  $\ell_t(x_k\mid a_k)$ at each site. There is no loop, so belief propagation is exact. The forward message $f_k$ carries
+  what $x_1,\ldots,x_k$ say about $a_k$, the backward message $b_k$ what $x_{k+1},\ldots,x_L$ say about it, and the
+  posterior of $a_k$ is proportional to $f_k(a_k)\,b_k(a_k)$.}
   \label{fig:factor-graph}
 \end{figure}
 
-\Cref{fig:factor-graph} draws the posterior as a factor graph. It is a chain with one pendant factor per site, hence a
-tree, and on a tree belief propagation is exact \cite{pearl1988probabilistic,kschischang2001factor,mezard2009information}.
-BP passes two messages along the chain. The forward message carries what $x_1,\dots,x_k$ say about $a_k$, the
-backward message what $x_{k+1},\dots,x_L$ say about it:
+\paragraph{Beyond Gaussianity.}
+The Gaussian chain is exactly solvable and linear. We now take a controlled non-Gaussian step, the Laplace chain
+\begin{equation}
+    a_{k+1}=\alpha a_k+\varepsilon_k,
+    \qquad
+    \varepsilon_k\sim\operatorname{Laplace}(0,b),
+    \label{eq:laplace_chain}
+\end{equation}
+with $2b^2=1-\alpha^2$. The noise has the same variance as in the Gaussian chain, so the two chains have the same
+covariance. But the Laplace noise has a sharp peak and heavier tails, and the score is no longer linear in $\mathbf x$.
+At small noise it saturates: a large jump in the data is believed, because the Laplace chain does make jumps, and only
+a bounded part of it is put down to the diffusion noise (\cref{app:gaussian-laplace}).
+
+\paragraph{The posterior factor graph.}
+The first-order Markov structure survives the noise. Combining the kernel with the independent noise terms gives
+\cref{eq:posterior_chain}, whose factor graph is a chain with one extra factor on each site (\cref{fig:factor-graph}).
+Since the noise acts on each site separately, conditioning on the observations adds no edge. The posterior is still
+connected and has no loop: it is a tree, where the cavity method and belief propagation are exact
+\cite{mezard2001bethe,mezard2006reconstruction,mezard2009information}.
+
+\paragraph{Exact inference by belief propagation.}
+On a tree, the sum--product algorithm gives the exact marginals with one forward and one backward pass
+\cite{pearl1988probabilistic,kschischang2001factor,yedidia2003understanding}. With forward messages $f_k$ and backward
+messages $b_k$, the recursions are
 \begin{align}
-  \mu_{\to}^{k}(a)&\propto\ell_t(x_k\mid a)\int K(a\mid a')\,\mu_{\to}^{k-1}(a')\,\dd a',\\
-  \mu_{\leftarrow}^{k}(a)&\propto\int K(a'\mid a)\,\ell_t(x_{k+1}\mid a')\,\mu_{\leftarrow}^{k+1}(a')\,\dd a'.
+    f_1(a_1)
+    &=\mu(a_1)\ell_t(x_1\mid a_1),\nonumber\\
+    f_{k+1}(a_{k+1})
+    &=\ell_t(x_{k+1}\mid a_{k+1})\nonumber\\
+    &\qquad\times\int K(a_{k+1}\mid a_k)f_k(a_k)\,da_k,\nonumber\\
+    b_L(a_L)&=1,\nonumber\\
+    b_k(a_k)
+    &=\int K(a_{k+1}\mid a_k)
+      \ell_t(x_{k+1}\mid a_{k+1})\nonumber\\
+    &\qquad\times b_{k+1}(a_{k+1})\,da_{k+1}.
+    \label{eq:bp}
 \end{align}
-The marginal of $a_k$ is proportional to $\mu_{\to}^{k}\mu_{\leftarrow}^{k}$; its mean is $\E[a_k\mid x]$, and
-\cref{eq:tweedie} turns it into the score. This holds for any kernel and at any noise level. The noise level enters
-only through $\ell_t$, so one kernel gives the score at every $t$.
+The posterior of one site is then
+\begin{equation}
+    p(a_k\mid\mathbf x)
+    \propto f_k(a_k)b_k(a_k),
+\end{equation}
+and its mean gives the score through \cref{eq:tweedie}:
+\begin{equation}
+    S_{t,k}(\mathbf x)=\frac{e^{-t}}{\Delta_t}\,
+    \frac{\int a\,f_k(a)b_k(a)\,da}{\int f_k(a)b_k(a)\,da}-\frac{x_k}{\Delta_t}.
+\end{equation}
 
-For a non-Gaussian kernel the messages have no closed form. We represent them on a grid of $\Ng$ points (we use
-$\Ng=401$ on $[-8,8]$). Each message is then a vector and each step a matrix--vector product with the kernel matrix
-$K_{ij}=K(g_i\mid g_j)$, so a sequence costs $O(L\Ng^2)$ (\cref{app:bp}). The grid is the only approximation. On the
-Gaussian chain grid BP matches the Kalman smoother to double-precision round-off for $t\geq0.05$; on the Laplace
-chain, refining the grid changes the score by about $10^{-5}$ in relative terms at $t=0.05$.
-% src: fig_grid_gaussian (exp_01/grid_sweep_M.csv); fig_closure grid_selfconv_med = 1.13e-5 at t=0.05 (thesis ch07_metrics.csv)
-
-\begin{figure*}[t]
-  \centering
-  \includegraphics{fig_laplace}
-  \caption{The Laplace chain. (a) Law of the innovation, Laplace against Gaussian with the same variance. (b, c) Score
-  of the middle site of a chain of nine against its own noisy value $x_k$, the other sites at zero, at $t=0.05$ and
-  $t=1$. Exact scores from grid BP (Laplace) and in closed form (Gaussian).}
-  \label{fig:laplace}
-\end{figure*}
-
-\paragraph{The known-kernel case.} \Cref{fig:laplace} shows what changes on the Laplace chain. Its innovation law has a
-kink at zero and exponential tails, and its exact score is not linear in $x$. At small noise it saturates: a single
-large observation is partly attributed to the noise instead of being followed. At large noise it becomes linear and
-close to the Gaussian one. A linear denoiser cannot represent the saturation. The best one, the Kalman smoother
-matched to the chain's covariance, has a median relative score error of $0.27$ at $t=0.05$, against a grid error of
-$10^{-5}$ for BP (\cref{fig:closure} in \cref{app:bp}); the gap closes as $t$ grows.
-% src: thesis tools/data/ch07_metrics.csv: score_med 0.269 at t=0.05 (0.377 at t=0.02), 8.1e-6 at t=3
+So, for any known first-order kernel, two sweeps of messages give the exact joint score, with no assumption of
+Gaussianity or linearity. The noise level only enters through $\ell_t$, so one kernel gives the score at every $t$.
+The same exact inference on a tree is at the heart of the hierarchical models of \cite{garnierbrun2024transformers},
+where transformers trained on such data learn to approximate BP; a Markov chain is the simplest tree.

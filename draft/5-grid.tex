@@ -1,0 +1,71 @@
+\section{Messages are probability densities}
+\label{sec:grid}
+
+Unlike in discrete-state models, each latent variable here is a real number, $a_k\in\mathbb R$. A BP message is
+therefore a non-negative function of a continuous variable, not a finite vector, and the message updates involve
+integrals over $\mathbb R$ that have no closed form for a non-Gaussian kernel.
+
+We compute these integrals numerically on a uniform grid
+\begin{equation}
+    g_i=-A+ih,\quad i=0,\ldots,N_g-1,\quad h=2A/(N_g-1),
+\end{equation}
+on $[-A,A]$, with trapezoidal weights $w_i$; we use $A=8$ and $N_g=401$, so $h=0.04$. The kernel and the noise terms
+become a matrix and vectors,
+\begin{equation}
+    K_{ij}=K(g_i\mid g_j),
+    \qquad
+    (\ell_k)_i=\ell_t(x_k\mid g_i),
+\end{equation}
+and each integral in the recursions becomes a weighted matrix--vector product:
+\begin{align}
+    f_{k+1}
+    &\propto
+    \ell_{k+1}\odot K(w\odot f_k),\\
+    b_k
+    &\propto
+    K^\top(w\odot\ell_{k+1}\odot b_{k+1}),
+\end{align}
+where $\odot$ is the elementwise product and $w=(w_0,\ldots,w_{N_g-1})^\top$. The messages are normalised after each
+update for numerical stability, and the posterior mean is
+\begin{equation}
+    \widehat m_k
+    =
+    \frac{\sum_i w_i g_i(f_k)_i(b_k)_i}
+         {\sum_i w_i(f_k)_i(b_k)_i},
+\end{equation}
+which goes into Tweedie's formula to give the score.
+
+A sequence costs $O(LN_g^2)$ operations. The grid introduces a discretisation error, which we control by refining the
+grid and enlarging the domain, and which we test against the Gaussian chain, where the exact score is known. There grid
+BP matches $-\mathbf Q_t\mathbf x$ to double-precision round-off for $t\geq0.05$, our smallest noise level. On the
+Laplace chain, going from 401 to 801 points changes the score by about $10^{-5}$ in relative terms (\cref{app:bp}).
+% src: fig_grid_gaussian (exp_01/grid_sweep_M.csv); figs_v2._closure_sweep, grid 401 vs 801 median 1.10e-5 at t=0.05
+
+\begin{figure}[t]
+  \centering
+  \includegraphics{fig_closure}
+  \caption{What a Gaussian approximation costs on the Laplace chain ($\alpha=0.85$, $L=32$, true kernel). Relative
+  score error against grid BP on 801 points, at the twelve noise levels used in the experiments; median over 2{,}000
+  sequences, with the 10--90\% range shaded. Gaussian approximation: Gaussian messages, which give the score of the
+  Gaussian chain with the same covariance. Grid BP: the 401-point grid used in every experiment.}
+  \label{fig:grid-vs-gaussian}
+  % src: tools/paper_figs/figs_v2.py::_closure_sweep (reports/paper-figures/data/closure_sweep_2000.csv)
+\end{figure}
+
+\paragraph{Why not a Gaussian approximation?}
+A natural alternative is to approximate each message by a Gaussian, keeping only its mean and variance. This is exact
+for the Gaussian chain, because Gaussian kernels and noise terms stay Gaussian under the products and integrals of BP.
+It is not exact for the Laplace chain: Gaussian messages throw away what is non-Gaussian and give back the score of the
+Gaussian chain with the same covariance, which is linear in $\mathbf x$ and cannot see the peak of the Laplace law.
+
+This matters most at small noise, where the Laplace score saturates. \Cref{fig:grid-vs-gaussian} shows the cost: at
+$t=0.05$ the Gaussian approximation has a median relative error of $0.24$, against $10^{-5}$ for grid BP. The gap closes
+as $t$ grows, because both scores become linear.
+% src: closure_sweep_2000.csv: t=0.05 lin_med 0.2387, grid_med 1.10e-5
+
+This is also different from approximate message passing (AMP) and Thouless--Anderson--Palmer (TAP) methods
+\cite{thouless1977solution,mezard1986sk,mezard1987spin,kabashima2003cdma,donoho2009message,krzakala2012statistical,bolthausen2014iterative}.
+Those are built for dense, high-dimensional systems, where many weak interactions justify Gaussian messages with an
+Onsager correction \cite{zdeborova2016statistical,mezard2017meanfield,lauditi2023sparse}. Our factor graph is a chain,
+where each variable has two neighbours: ordinary belief propagation is already exact, so we discretise the messages
+rather than approximate them.

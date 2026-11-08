@@ -1,18 +1,18 @@
-%% REFERENCE DRAFT (written 31 Oct 2026 from the 29 Oct call with Jerome). Read draft.pdf, or set
-%% Menu -> Main document -> draft.tex in Overleaf. The paper you write is main.tex; this file is not meant to be edited
-%% into the final version.
-%% Every number carries a "% src:" comment naming where it was read. Finished 7 Nov 2026: no [pending] mark is left; the
-%% tables come from tools/paper_figs/make_paper_figures.py (figures/tab_*.tex). The body (up to the impact statement)
-%% fits 8 pages in the ICML kit.
+%% REFERENCE DRAFT, rewritten 8 Nov 2026 from the user's main.tex (their text up to Allen-Cahn) on their plan: main text
+%% compares the mixture, Fourier and neural kernels with a global MLP and a window CNN; the ablations are in the
+%% appendix. Read draft.pdf, or set Menu -> Main document -> draft.tex in Overleaf. main.tex is the user's paper and is
+%% not touched by this file. Figures specific to this draft live in figures/draft/ and are found first.
+%% Every number carries a "% src:" comment naming where it was read.
 \documentclass{article}
 \input{preamble}
+\graphicspath{{figures/draft/}{figures/}}
 
-\icmltitlerunning{Learn the Kernel, Not the Score}
+\icmltitlerunning{Learning Scores for Markov Sequences in Generative Diffusion}
 
 \begin{document}
 
 \twocolumn[
-\icmltitle{Learn the Kernel, Not the Score:\\ Belief-Propagation Denoisers for Markov Sequences}
+\icmltitle{Learning Scores for Markov Sequences in Generative Diffusion}
 
 \begin{icmlauthorlist}
   \icmlauthor{Giovanni Mantovani}{boc}
@@ -21,7 +21,7 @@
 \end{icmlauthorlist}
 \icmlaffiliation{boc}{Department of Computing Sciences, Bocconi University, Milan, Italy}
 \icmlcorrespondingauthor{Giovanni Mantovani}{giovanni-mantovani@studbocconi.it}
-\icmlkeywords{diffusion models, belief propagation, expectation maximisation, Markov chains, denoising}
+\icmlkeywords{diffusion models, belief propagation, expectation maximisation, Markov chains}
 \vskip 0.3in
 ]
 
@@ -35,13 +35,14 @@
 \input{draft/2-setting}
 \input{draft/3-gaussian}
 \input{draft/4-tree}
+\input{draft/5-grid}
 \input{draft/5-laplace}
 \input{draft/6-allen-cahn}
 \input{draft/7-discussion}
 
 \section*{Impact statement}
-This paper studies how much a diffusion model's denoiser can gain from knowing that its data are Markov, on synthetic
-sequences and a simulated physical field with known ground truth. We see no ethical concern specific to it.
+This paper studies how much a denoiser for diffusion models can gain from knowing that its data are Markov, on
+synthetic sequences and a simulated physical field with known ground truth. We see no ethical concern specific to it.
 
 \bibliography{references}
 \bibliographystyle{icml2026}
