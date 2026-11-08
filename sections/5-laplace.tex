@@ -1,6 +1,7 @@
-\section{Learning the kernel: the Laplace chain}
+\section{Learning the kernel}
 \label{sec:laplace}
 
+\begin{comment}
 \note{The largest section (33:47): ``the heart of the proposal is EM on Markov chains'' (29:29). The whole
 comparison with a network that has locality (CNN) and one that has none (MLP), then breaking Markovianity, in the main
 text.}
@@ -104,3 +105,298 @@ CPU thread (E56 timing).}
 $a=(y+\beta g)/\sqrt{1+\beta^2}$; long-range $Q_{\rm AR}+\gamma Q_{\rm long}$. Numbers: at $\delta\approx5\times10^{-6}$
 CNN $11$--$15\times$ worse, MLP $18$--$22\times$; break-even $\delta^\star\approx1$--$2\times10^{-2}$ (CNN),
 $2$--$4\times10^{-2}$ (MLP); $\hat\alpha$ $0.848\to0.939$ at $\beta=1$. Second-order chain: not run yet.}
+
+\end{comment}
+In practice, the transition kernel is unknown and must be
+learned from data. We consider the Laplace chain, for which
+the exact score is non-linear, and compare kernel learning
+with neural denoisers trained directly on noisy observations.
+
+\subsection{Expectation--maximisation through BP}
+
+Let $K_\theta$ be a parametric family of transition kernels
+and let $\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(N)}$ denote
+noisy training sequences, each observed at a noise level
+$t_d$. The clean sequences are latent variables. The
+observed-data likelihood is therefore
+\begin{equation}
+    p_\theta(\mathbf{x}^{(d)})
+    =
+    \int
+    p_\theta(\mathbf{a})
+    p_{t_d}(\mathbf{x}^{(d)}\mid\mathbf{a})
+    \,d\mathbf{a}.
+\end{equation}
+Although this integral is generally not available in
+closed form, belief propagation computes it on the chain.
+In particular, the likelihood can be obtained from the
+normalising constants of the forward messages.
+
+We maximise the observed-data likelihood using
+expectation--maximisation (EM). The E-step uses the current
+parameters $\theta_{\mathrm{old}}$ to infer the posterior
+distribution of each pair of neighbouring latent variables:
+\begin{equation}
+    \xi_k^{(d)}(a,a')
+    =
+    p_{\theta_{\mathrm{old}}}
+    \left(
+        a_k=a,\,
+        a_{k+1}=a'
+        \mid \mathbf{x}^{(d)}
+    \right).
+\end{equation}
+Using the forward and backward messages, this pairwise
+posterior is proportional to
+\begin{equation}
+    \xi_k^{(d)}(a,a')
+    \propto
+    \mu_k^{\rightarrow}(a)\,
+    K_{\theta_{\mathrm{old}}}(a'\mid a)\,
+    \ell_{t_d}(x_{k+1}^{(d)}\mid a')\,
+    \mu_{k+1}^{\leftarrow}(a').
+    \label{eq:pairwise-posterior}
+\end{equation}
+
+Summing over sequences and links gives the expected
+transition counts
+\begin{equation}
+    \Xi(a,a')
+    =
+    \sum_{d=1}^{N}
+    \sum_{k=1}^{L-1}
+    \xi_k^{(d)}(a,a').
+\end{equation}
+These represent the expected number of transitions from
+state $a$ to state $a'$ in the unobserved clean data.
+
+The M-step maximises the expected complete-data
+log-likelihood:
+\begin{equation}
+    Q(\theta\mid\theta_{\mathrm{old}})
+    =
+    \iint
+    \Xi(a,a')\,
+    \log K_\theta(a'\mid a)
+    \,da\,da'.
+    \label{eq:em-objective}
+\end{equation}
+The parameter update is
+\begin{equation}
+    \theta_{\mathrm{new}}
+    =
+    \arg\max_\theta
+    Q(\theta\mid\theta_{\mathrm{old}}).
+\end{equation}
+
+With clean training sequences, the latent variables are
+observed and EM is unnecessary: $\Xi$ is simply the
+empirical distribution of the observed transitions, and
+the kernel can be fitted by ordinary maximum likelihood.
+With noisy sequences, instead, the transition counts are
+soft posterior expectations obtained through BP.
+
+The connection between the E- and M-steps follows from
+Fisher's identity:
+\begin{equation}
+    \left.
+    \nabla_\theta Q(\theta\mid\theta_{\mathrm{old}})
+    \right|_{\theta=\theta_{\mathrm{old}}}
+    =
+    \nabla_\theta
+    \log p_\theta(\mathbf{x})
+    \big|_{\theta=\theta_{\mathrm{old}}}.
+\end{equation}
+Thus, the gradient of the EM objective at the current
+parameters equals the gradient of the observed-data
+log-likelihood. Each M-step increases the likelihood
+when the expected log-likelihood is maximised.
+
+An important practical consequence is that BP enters
+the M-step only through $\Xi$. These expected transition
+counts remain fixed while the parameters are updated;
+there is no need to differentiate through the message
+updates. The gradient flows through the parameterised
+kernel and its normalisation. Moreover, the noise level
+appears only in the E-step, so the kernel is learned once
+and can subsequently be used to recover the score at
+any noise level.
+
+\subsection{Kernel families}
+\label{sec:kernel-families}
+
+We first consider transition families that assume the
+shift structure
+\begin{equation}
+    a_{k+1}=\alpha a_k+\varepsilon_k,
+\end{equation}
+where the noise $\varepsilon_k$ is independent of
+$a_k$.
+
+One option is a mixture of $C=8$ Gaussians:
+\begin{equation}
+    K_\theta(a'\mid a)
+    =
+    \sum_{c=1}^{C}
+    \pi_c\,
+    \mathcal{N}
+    \left(
+        a'-\alpha a;\nu_c,s_c^2
+    \right),
+    \qquad
+    \sum_{c=1}^{C}\pi_c=1.
+\end{equation}
+This family has 25 parameters and admits an almost
+closed-form M-step. It can learn the autoregressive
+coefficient accurately, although it can only approximate
+the kink of the Laplace density by combining Gaussian
+components.
+
+We also parameterise the log-density of the innovation
+using basis expansions:
+\begin{equation}
+    \varphi_\theta(\varepsilon)
+    =
+    \frac{1}{Z_\theta}
+    \exp\left[
+        -\frac{\lambda\varepsilon^2}{2}
+        +
+        \sum_{m=1}^{M}c_m b_m(\varepsilon)
+    \right],
+    \label{eq:basis-innovation}
+\end{equation}
+where $b_m$ are basis functions and $Z_\theta$ is the
+normalising constant. We consider cubic B-splines,
+Gaussian radial basis functions, truncated Fourier
+series and Legendre polynomials, with 25 parameters
+for each family. Expanding the log-density guarantees
+positivity after normalisation and makes the M-step
+concave in the expansion coefficients.
+
+These shift families impose a specific structure on
+the transition law. We therefore also consider two
+families that do not assume that the transition depends
+on $a$ and $a'$ only through their difference.
+
+The first is a log-linear kernel, in which
+$\log K_\theta(a'\mid a)$ is expanded in a tensor
+B-spline basis of both arguments, using 100 parameters.
+
+The second is a neural energy kernel:
+\begin{equation}
+    K_\theta(a'\mid a)
+    =
+    \frac{
+        \exp[-E_\theta(a,a')]
+    }{
+        Z_\theta(a)
+    },
+    \qquad
+    Z_\theta(a)
+    =
+    \int
+    \exp[-E_\theta(a,u)]\,du.
+    \label{eq:neural-kernel}
+\end{equation}
+Here, $E_\theta$ is a multilayer perceptron with two
+hidden layers of 16 units, giving 337 parameters.
+The normalisation ensures that the network represents
+a valid conditional transition density.
+
+For noisy training sequences, the neural kernel is
+optimised within the same EM framework. BP computes
+the expected transition counts in the E-step, while
+the M-step maximises the objective in
+Eq.~\eqref{eq:em-objective}. We use gradient-based
+updates, such as Adam, to optimise the neural
+parameters. The expected counts are held fixed during
+each M-step, so automatic differentiation is required
+only through the kernel and its normalisation, not
+through BP.
+
+When clean sequences are available, the same neural
+kernel can instead be trained by directly maximising
+the transition log-likelihood:
+\begin{equation}
+    \mathcal{L}(\theta)
+    =
+    \sum_{d=1}^{N}
+    \sum_{k=1}^{L-1}
+    \log K_\theta
+    \left(
+        a_{k+1}^{(d)}
+        \mid a_k^{(d)}
+    \right).
+    \label{eq:neural-clean-ml}
+\end{equation}
+This objective can be optimised using stochastic
+gradient descent or Adam, without an E-step. Thus,
+the same kernel parameterisation supports both
+learning from noisy sequences through EM and learning
+from clean sequences through direct maximum
+likelihood.
+
+\subsection{Against neural denoisers}
+\label{sec:neural-denoisers}
+
+We compare the learned kernels with neural denoisers
+trained by denoising score matching (DSM). Unlike
+kernel learning, these methods do not explicitly
+model the transition law. Instead, they learn to
+estimate the score directly from corrupted sequences.
+
+For a clean sequence $\mathbf{a}$, we generate noisy
+observations according to
+\begin{equation}
+    \mathbf{x}
+    =
+    e^{-t}\mathbf{a}
+    +
+    \sqrt{\Delta_t}\boldsymbol{\xi},
+    \qquad
+    \boldsymbol{\xi}
+    \sim
+    \mathcal{N}(\mathbf{0},\mathbf{I}).
+\end{equation}
+A neural network
+$\boldsymbol{\epsilon}_\phi(\mathbf{x},t)$ is trained
+to predict the added Gaussian noise by minimising
+\begin{equation}
+    \mathcal{L}_{\mathrm{DSM}}(\phi)
+    =
+    \mathbb{E}_{\mathbf{a},t,\boldsymbol{\xi}}
+    \left[
+        \left\|
+            \boldsymbol{\xi}
+            -
+            \boldsymbol{\epsilon}_\phi
+            (\mathbf{x},t)
+        \right\|^2
+    \right].
+    \label{eq:dsm-objective}
+\end{equation}
+The corresponding score estimate is
+\begin{equation}
+    \widehat{\mathbf{S}}_t(\mathbf{x})
+    =
+    -\frac{
+        \boldsymbol{\epsilon}_\phi(\mathbf{x},t)
+    }{
+        \sqrt{\Delta_t}
+    }.
+\end{equation}
+
+We consider a global MLP, which does not impose
+locality, a window CNN, which uses local interactions,
+and standard sequence architectures including
+BiGRU, TCN, transformer and U-Net. These models are
+trained on clean sequences with freshly generated
+Gaussian noise.
+
+This comparison distinguishes two approaches:
+learning a low-dimensional transition mechanism and
+using BP to perform inference, or learning the
+denoising function directly from examples. In the
+first approach, the Markov structure is built into
+the model; in the second, the network must learn the
+relevant dependencies from data.

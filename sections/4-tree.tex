@@ -36,3 +36,60 @@ Grid exactness: round-off on the Gaussian chain for $t\geq0.05$ (Appendix~A); ab
 
 \note{Numbers: closure error median $0.27$ at $t=0.05$ ($0.38$ at $t=0.02$, $8\times10^{-6}$ at $t=3$) against grid
 error $1.1\times10^{-5}$ --- thesis \texttt{tools/data/ch07\_metrics.csv}.}
+
+
+\paragraph{Beyond Gaussianity.}
+The Gaussian chain provides an exactly solvable, linear baseline.
+We now consider a controlled non-Gaussian extension: the Laplace
+chain, defined by
+\begin{equation}
+    a_{k+1}=\alpha a_k+\varepsilon_k,
+    \qquad
+    \varepsilon_k\sim\operatorname{Laplace}(0,b),
+    \qquad
+    2b^2=1-\alpha^2.
+\end{equation}
+The innovations have the same variance as in the Gaussian chain,
+so both models share the same covariance structure. However, the
+Laplace innovations have heavier tails, and the resulting score
+is no longer linear in $\mathbf x$. In particular, the posterior
+mean is no longer a linear function of the observations.
+
+\paragraph{The posterior factor graph.}
+Despite this non-Gaussianity, the first-order Markov structure
+is preserved. Combining the transition kernel with the independent
+observation likelihood gives equation 7.
+The corresponding factor graph is a chain with one unary
+observation factor attached to each latent variable. Since the
+noise acts independently across sites, conditioning on the
+observations introduces no additional edges. The posterior
+therefore remains connected and acyclical, a tree.
+
+\paragraph{Exact inference by belief propagation.}
+On a tree, the sum--product algorithm computes exact posterior
+marginals through one forward and one backward message pass.
+Defining the forward messages $f_k$ and backward messages $b_k$,
+the recursions are
+\begin{align}
+    f_1(a_1)
+    &=\mu(a_1)\ell_t(x_1\mid a_1),\\
+    f_{k+1}(a_{k+1})
+    &=\ell_t(x_{k+1}\mid a_{k+1})
+      \int K(a_{k+1}\mid a_k)f_k(a_k)\,da_k,\\
+    b_L(a_L)&=1,\\
+    b_k(a_k)
+    &=\int K(a_{k+1}\mid a_k)
+      \ell_t(x_{k+1}\mid a_{k+1})
+      b_{k+1}(a_{k+1})\,da_{k+1}.
+\end{align}
+The single-site posterior is consequently
+\begin{equation}
+    p(a_k\mid\mathbf x)
+    \propto f_k(a_k)b_k(a_k).
+\end{equation}
+Its posterior mean gives the score through
+Eq.~\eqref{eq:tweedie}:
+
+Thus, for any known first-order transition kernel, belief
+propagation provides the exact joint score, without assuming
+Gaussianity or linearity.

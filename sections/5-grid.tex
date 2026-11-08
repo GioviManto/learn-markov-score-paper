@@ -1,0 +1,80 @@
+\section{Messages are probability densities}
+\label{sec:grid}
+
+Unlike discrete-state models, here each latent variable
+$a_k\in\mathbb R$. Consequently, a belief-propagation message
+is a non-negative function of a continuous variable, rather
+than a finite-dimensional vector. The message updates therefore
+involve integrals over $\mathbb R$, which cannot in general be
+evaluated in closed form for a non-Gaussian transition kernel.
+
+We approximate these integrals numerically by discretising the
+state space. We introduce a uniform grid
+\begin{equation}
+    g_i=-A+ih,\qquad i=0,\ldots,N_g-1,
+    \qquad h=\frac{2A}{N_g-1},
+\end{equation}
+on $[-A,A]$, together with trapezoidal quadrature weights
+$w_i$. The transition kernel and observation likelihood are
+then evaluated on the grid:
+\begin{equation}
+    K_{ij}=K(g_i\mid g_j),
+    \qquad
+    (\ell_k)_i=\ell_t(x_k\mid g_i).
+\end{equation}
+Each integral in the forward and backward recursions becomes
+a weighted matrix--vector product. In particular, the
+unnormalised updates are
+\begin{align}
+    f_{k+1}
+    &\propto
+    \ell_k\odot K(w\odot f_k),\\
+    b_k
+    &\propto
+    K^\top(w\odot\ell_{k+1}\odot b_{k+1}),
+\end{align}
+where $\odot$ denotes elementwise multiplication and
+$w=(w_0,\ldots,w_{N_g-1})^\top$.
+The messages are normalised after each update to ensure
+numerical stability. The posterior mean is approximated by
+\begin{equation}
+    \widehat m_k
+    =
+    \frac{\sum_i w_i g_i(f_k)_i(b_k)_i}
+         {\sum_i w_i(f_k)_i(b_k)_i},
+\end{equation}
+and substituted into the Tweedie identity to obtain the score.
+
+The resulting computational cost is
+$O(LN_g^2)$, with $N_g$ grid points and sequence length $L$.
+Although this introduces a discretization error, its
+accuracy can be controlled by refining the grid and enlarging
+the integration domain, and against the Gaussian reference.
+
+\paragraph{Why not a Gaussian approximation?}
+A natural alternative would be to approximate each message
+by a Gaussian distribution, retaining only its mean and
+variance. This is exact for the Gaussian chain: Gaussian
+likelihoods and transition kernels are closed under the
+multiplication and marginalisation operations of belief
+propagation. It is not exact for the Laplace chain, however.
+A Gaussian closure discards the non-Gaussian features of the
+messages and effectively recovers the score of the
+covariance-matched Gaussian model.
+
+This distinction matters most at low noise, where the
+Laplace-chain score exhibits a non-linear, saturating
+dependence on the observations. As shown in
+Fig.~\ref{fig:grid-vs-gaussian}, the Gaussian approximation
+can therefore incur substantial score error, whereas grid
+belief propagation closely tracks the reference solution.
+
+This should also be distinguished from approximate message
+passing (AMP) and Thouless--Anderson--Palmer (TAP) methods.
+Those methods are motivated by dense, high-dimensional
+systems, where many weak interactions justify approximate
+Gaussian message updates, often with an Onsager correction.
+Our factor graph is instead a finite-degree chain and a tree:
+ordinary belief propagation is already exact at the
+continuous level. We therefore discretise the messages
+rather than introduce a Gaussian approximation.

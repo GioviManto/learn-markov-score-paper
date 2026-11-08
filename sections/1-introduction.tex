@@ -12,3 +12,22 @@ with this structure.}
 \note{The three steps, one paragraph each or one paragraph in all: the score is not local (Sec.~3); the posterior is a
 tree, BP is exact (Sec.~4); learning = learning the kernel by EM, no backpropagation through BP (Sec.~5). Then the
 experiments: Laplace chain vs networks, off-Markov; Allen--Cahn (Sec.~6).}
+
+Diffusion models are inspired by nonequilibrium thermodynamics (Noneq diff models) techinques and are state-of-the-art generative models widely used to generate pictures (DALL-E 3, OpenAI), videos (Google Veo), 3D protein structures (AlphaFold3), and many other applications. These models reverse an SDE (DSM with SDEs, DDPM) using the score $s_t(\mathbf{x}_t)
+=
+\nabla_{\mathbf{x}_t}
+\log p_t(\mathbf{x}_t).$ which can be rewritten as a posterior mean estimation problem. Notable work has been done on the understanding of the models with the identification of dynamical regimes (Mezard Biroli), explanation on why generalization emerges (Mezard Biroli Bonnaire), and biased generalization (Garnier-Brun Mezard). 
+Here we work with Markov sequences, and we want to understand what a denoiser gains from knowing the data is Markov and how we can exploit this property.
+We start from the simple Gaussian case where the score has a linear closed form and we study the precision matrix that characterizes it. Then, the most controlled case where the score is non linear is the Laplace case and we can compute exact scores using message passing. Finally, we learn the kernel and we run experiments on the stochastic Allen-Cahn physical model.
+
+The main contributions are:
+
+- For any first order Markov chain, we can recover the exact score using Belief Propagation
+
+- In Markov sequences where you do not know the kernel, you can learn it through Expectation Maximization if you see just noisy sequences or Maximum Likelihood if you have access to the clean sequences. You can even use a small neural network and recover the score with BP, which more accurate and more efficient, in our experiments, compared to denoising score matching. 
+
+- Estimation of the discretization error using a grid with the Gaussian reference
+
+- Characterization of the Gaussian case and Laplace case and generalization to any distribution.
+
+

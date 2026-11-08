@@ -1,6 +1,9 @@
 \section{The Gaussian chain: diffusion breaks locality}
 \label{sec:gaussian}
 
+
+
+
 \begin{figure*}[t]
   \centering
   \includegraphics{fig_locality}
@@ -17,3 +20,36 @@ chain, infinite data: relative score error $0.20$ ($r=1$), $0.089$ ($r=2$), $0.0
 --- thesis \texttt{fig\_ch10.windowed\_oracle}.}
 
 \note{End: the posterior is still a chain; for the Gaussian chain inference on it is the Kalman smoother.}
+As an exactly solvable baseline, consider the stationary Gaussian chain
+\begin{equation}
+    a_{k+1}=\alpha a_k+\eta_k,
+    \qquad \eta_k\sim\mathcal N(0,1-\alpha^2).
+\end{equation}
+Here, $\alpha\in(-1,1)$ is the autoregressive coefficient,
+controlling the correlation between consecutive sites.
+The variance $1-\alpha^2$ ensures unit marginal
+variance and stationarity.
+Its joint distribution is Gaussian,
+$p_0(\mathbf a)=\mathcal N(\mathbf 0,\boldsymbol\Sigma_0)$,
+with $(\boldsymbol\Sigma_0)_{ij}=\alpha^{|i-j|}$.
+The corresponding precision matrix
+$\mathbf Q_0=\boldsymbol\Sigma_0^{-1}$ is tridiagonal,
+reflecting the Markov property.
+
+Under OU corruption, the noisy distribution remains Gaussian:
+\begin{equation}
+    p_t(\mathbf x)=\mathcal N(\mathbf 0,\boldsymbol\Sigma_t),
+    \qquad
+    \boldsymbol\Sigma_t
+    =e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I.
+\end{equation}
+Consequently, its score is exactly linear:
+\begin{equation}
+    \mathbf S_t(\mathbf x)
+    =-\mathbf Q_t\mathbf x,
+    \qquad \mathbf Q_t=\boldsymbol\Sigma_t^{-1}.
+\end{equation}
+While $\mathbf Q_0$ is tridiagonal, $\mathbf Q_t$ is generally dense
+for $t>0$. Thus, diffusion turns a locally structured Gaussian
+chain into a distribution whose score is non-local, despite
+preserving its Gaussianity.
