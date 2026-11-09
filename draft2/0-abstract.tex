@@ -1,7 +1,7 @@
 Diffusion models learn to denoise data at every noise level, and the object they need is the score, an affine function
 of the posterior mean. We ask how to compute it for Markov sequences. In the Gaussian case the score is linear and set
 by a precision matrix, and we see how noise quickly erases its Markov structure. In the Laplace case the score has no
-closed form, but the posterior is a chain, hence a tree, so belief propagation (BP) gives the exact score. Its messages
+closed form, but the posterior is a tree, so belief propagation (BP) gives the exact score. Its messages
 are probability densities: we discretise them on a grid and test the discretisation against the Gaussian closed form.
 When the transition kernel is unknown we learn it, with expectation--maximisation from noisy sequences or with maximum
 likelihood from clean ones, and BP turns it into the score at every noise level. The kernel can be a small neural

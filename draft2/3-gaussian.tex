@@ -20,8 +20,7 @@ As an exactly solvable baseline, consider the stationary Gaussian chain
 where $\alpha\in(-1,1)$ sets the correlation between consecutive sites and the noise variance $1-\alpha^2$ keeps the
 chain stationary with unit variance. Its joint distribution is Gaussian,
 $p_0(\mathbf a)=\mathcal N(\mathbf 0,\boldsymbol\Sigma_0)$ with $(\boldsymbol\Sigma_0)_{ij}=\alpha^{|i-j|}$, and its
-precision matrix $\mathbf Q_0=\boldsymbol\Sigma_0^{-1}$ is tridiagonal: this is the Markov property, written as a
-statement about the score.
+precision matrix $\mathbf Q_0=\boldsymbol\Sigma_0^{-1}$ is tridiagonal: this is the algebraic encoding of the Markov property.
 
 Under the noise of \cref{eq:ou_corruption} the data stay Gaussian,
 \begin{equation}
@@ -42,9 +41,8 @@ is strongest at an intermediate noise level, $t^{*}\simeq0.075$ for $\alpha=0.85
 noise dominates.
 % src: t* = 0.0753, fig_locality / fig_locality_curve
 
-So locality cannot simply be imposed on the denoiser. A denoiser that only looks at the two neighbours of each site
-has a relative score error of $0.20$ even with unlimited data. The structure survives elsewhere: the posterior
+So locality cannot simply be imposed on the denoiser.
+The structure survives elsewhere: the posterior
 $p_t(\mathbf a\mid\mathbf x)$ of \cref{eq:posterior_chain} is still a chain, because the noise adds one factor per site
-and no new link. For the Gaussian chain, inference along this chain returns $-\mathbf Q_t\mathbf x$ exactly in $O(L)$
-operations, without ever forming $\mathbf Q_t$. The next sections do the same for any kernel.
+and no new link. The next sections uses this observation to generalize to any kernel.
 % src: thesis tools/fig_ch10.py::windowed_oracle([1]) = 0.2023 (alpha=0.85, L=32, twelve levels)
