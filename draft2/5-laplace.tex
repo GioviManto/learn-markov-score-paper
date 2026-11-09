@@ -210,7 +210,7 @@ to find it in the data.
   noisy sequences and used inside BP, the mixture of 8 Gaussians and the neural kernel. Open markers, dashed: the neural
   kernel fitted by maximum likelihood on the clean sequences. Global MLP and window CNN: denoising score matching on the
   clean sequences. Dotted: the best linear denoiser. Medians over seeds; on the Laplace chain the EM runs stop at
-  $N=2048$.}
+  $N=2048$ (\cref{app:em}).}
   \label{fig:results}
   % src: tools/paper_figs/figs_v2.py::fig_results. (a) E02a capacity.csv (em_bp, C=8), E56 kernels (energy), E58
   % (energy_h16, mlp, window, lmmse; E58's gate G2 reproduces E03's networks at N <= 2048). (b) E33 via read_e60
@@ -221,7 +221,7 @@ We use the Laplace chain with $\alpha=0.85$ and $L=32$, and twelve noise levels 
 is trained on $N$ sequences, from 32 to 2{,}048 (up to 32{,}768 with clean data), with 16 seeds. EM sees one noisy copy
 of each training sequence, at one of the twelve levels; the networks see the clean sequences and draw fresh noise at
 every step, which favours the networks. We measure the relative score error $\|\widehat{\mathbf S}-\mathbf
-S\|/\|\mathbf S\|$ on 2{,}048 test sequences at all twelve levels, where $\mathbf S$ is the exact score from BP with the
+S\|/\|\mathbf S\|$ on 2{,}048 test sequences, pooled over sites and all twelve levels (\cref{app:measures}), where $\mathbf S$ is the exact score from BP with the
 true kernel. Every model keeps the checkpoint with the lowest error on separate validation sequences.
 
 \Cref{fig:results}a shows the result. The mixture learned by EM, with 25 parameters, has the lowest error at every $N$,
@@ -250,7 +250,7 @@ model, not only from how it is trained.
   \includegraphics{fig_steps}
   \caption{Step efficiency on the Laplace chain with $N=2048$: test score error against the number of parameter
   updates. One update is an EM iteration of the mixture, one Adam step of the neural kernel (ten per EM iteration), or
-  one SGD step of a network. Median over 16 seeds.}
+  one Adam step of a network on 64 sequences (\cref{app:measures}). Median over 16 seeds.}
   \label{fig:steps}
   % src: tools/paper_figs/figs_v2.py::fig_steps on reports/core/e63_curves_wall.csv (E65 refits, frozen 4 Nov 2026)
 \end{figure}

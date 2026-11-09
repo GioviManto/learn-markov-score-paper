@@ -1,3 +1,69 @@
+\section{How the figures are measured}
+\label{app:measures}
+
+\paragraph{Relative score error.} Every error in the paper compares an estimated score $\widehat{\mathbf S}_t$ with
+the exact score $\mathbf S_t$, computed by grid BP with the true kernel. The test set has $n$ sequences
+$\mathbf x^{(1)},\ldots,\mathbf x^{(n)}$ of length $L$ at each of the twelve noise levels $t\in\mathcal T$, log-spaced
+between $0.05$ and $3$. We add up the squared errors over all sequences, sites and levels before dividing:
+\begin{equation}
+  \mathcal E
+  =\left(
+  \frac{\sum_{t\in\mathcal T}\sum_{j=1}^{n}\sum_{k=1}^{L}
+        \big(\widehat S_{t,k}(\mathbf x^{(j)})-S_{t,k}(\mathbf x^{(j)})\big)^2}
+       {\sum_{t\in\mathcal T}\sum_{j=1}^{n}\sum_{k=1}^{L}
+        S_{t,k}(\mathbf x^{(j)})^2}
+  \right)^{1/2}.
+  \label{eq:rel-error}
+\end{equation}
+This is the root-mean-square error of the score divided by the root-mean-square size of the score. It is $0$ for the
+exact score and $1$ for the useless estimate $\widehat{\mathbf S}=\mathbf 0$, and it does not depend on the units of
+$\mathbf a$. The score is largest at small $t$, where $\Delta_t$ is small, so the small noise levels weigh most in
+$\mathcal E$. Restricting the sums to one level gives the error at that level. In \cref{sec:results,sec:steps} and in
+the appendix figures, $n=2{,}048$ and $L=32$, and the test sequences are the same for every model. The dotted line in
+the figures is the best linear denoiser: the linear function of $\mathbf x$ with the lowest $\mathcal E$, computed from
+the exact covariance of the chain.
+% src: experiments/protocol.py estimand; e14._pooled = e03._risk (region all); frozen_config t_grid = log grid 0.05..3, 12
+
+\paragraph{Gaussian approximation against grid BP (\cref{fig:grid-vs-gaussian}).} We draw $2{,}000$ Laplace chains
+($\alpha=0.85$, $L=32$) for each of the twelve levels and noise each one once. The reference is grid BP with the true
+Laplace kernel on $801$ points, and we compare two estimates with it. The first is grid BP with the same kernel on the
+$401$ points used in every experiment. The second is the Gaussian approximation: BP with Gaussian messages, which
+replaces the Laplace noise by Gaussian noise of the same variance. Its posterior mean is that of the Gaussian chain with
+the same covariance $(\boldsymbol\Sigma_0)_{ij}=\alpha^{|i-j|}$,
+\begin{equation}
+  \widehat{\mathbf m}=e^{-t}\boldsymbol\Sigma_0\big(e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I\big)^{-1}\mathbf x,
+\end{equation}
+which is also the best linear denoiser. Each posterior mean goes into Tweedie's formula, and for each sequence we
+compute $\|\widehat{\mathbf S}_t(\mathbf x)-\mathbf S_t(\mathbf x)\|/\|\mathbf S_t(\mathbf x)\|$ over its $32$
+sites. The figure shows the median of this ratio over the $2{,}000$ sequences at each level and its 10--90\% range.
+% src: tools/paper_figs/figs_v2.py::_closure_sweep (seed [20261108, round(1e4 t)]; reports/paper-figures/data/closure_sweep_2000.csv)
+
+\paragraph{How far $\mathbf Q_t$ is from tridiagonal (\cref{fig:locality,fig:locality-curve}).} \Cref{fig:locality}
+shows the magnitude $|(\mathbf Q_t)_{ij}|$ of every entry. To sum up a whole matrix in one number we use the Frobenius
+norm of the entries at a given distance from the diagonal,
+\begin{equation}
+  \|\mathbf M\|_{d\ge2}=\Big(\sum_{|i-j|\ge2}M_{ij}^2\Big)^{1/2},
+  \qquad
+  \|\mathbf M\|_{d=1}=\Big(\sum_{|i-j|=1}M_{ij}^2\Big)^{1/2},
+\end{equation}
+and define
+\begin{equation}
+  r(t)=\frac{\|\mathbf Q_t\|_{d\ge2}}{\|\mathbf Q_0\|_{d=1}} .
+\end{equation}
+The numerator is the coupling between sites that are not neighbours, which is zero at $t=0$. The denominator is the
+coupling between neighbours in the clean chain, a fixed scale. \Cref{fig:locality-curve} plots $r(t)$, and $t^{*}$,
+the level framed in \cref{fig:locality}, is where $r$ is largest, found on a fine logarithmic grid of $t$.
+% src: tools/paper_figs/make_paper_figures.py::_precision_snapshots (fig_ch05.dist_mass(Q_t, 2, L) / dist_mass(Q_0, 1, 1),
+% 4,000 log-spaced t in [1e-3, 10^0.62]); t* = 0.0753
+
+\paragraph{Parameter updates (\cref{fig:steps}).} The horizontal axis counts how many times the parameters change. For
+the mixture, one update is one EM iteration: an E-step, which runs BP over all $N$ training sequences, and the
+closed-form M-step. For the neural kernel, one update is one Adam step on $Q$ (\cref{eq:em-objective}); from noisy data
+an EM iteration has one E-step and ten such steps, and from clean data there is no E-step. For a network, one update is
+one Adam step on a batch of $64$ sequences. So the updates do not cost the same: an EM update uses every training
+sequence and a network update uses $64$ of them. \Cref{app:compute} compares the methods in wall-clock time instead.
+% src: tools/paper_figs/figs_v2.py::STEP_ARMS (energy scale x10); e63_curves_wall.csv
+
 \section{The Gaussian and the Laplace chain}
 \label{app:gaussian-laplace}
 
@@ -11,8 +77,8 @@ $r=1$, 2, 4 and 8.
 \begin{figure}[h]
   \centering
   \includegraphics{fig_locality_curve}
-  \caption{Size of $\mathbf Q_t$ outside the tridiagonal band, relative to the nearest-neighbour entries of
-  $\mathbf Q_0$, against $t$ (Gaussian chain, $\alpha=0.85$, $L=24$). It peaks at $t^{*}\simeq0.075$.}
+  \caption{The ratio $r(t)$ of \cref{app:measures}: size of $\mathbf Q_t$ outside the tridiagonal band, relative to
+  the nearest-neighbour entries of $\mathbf Q_0$, against $t$ (Gaussian chain, $\alpha=0.85$, $L=24$). It peaks at $t^{*}\simeq0.075$.}
   \label{fig:locality-curve}
 \end{figure}
 
@@ -88,6 +154,18 @@ score, EM can select by the likelihood of noisy validation sequences, which BP c
 loss: this changes the errors by at most $7\%$ and changes no ranking.
 % src: experiments/e03_baselines.py::_one_view_groups; outputs/E02a/params_capacity.json; tools/core/read_e65.py (E65):
 % free/oracle max em_bp 1.7%, spline 6.9%, energy 6.9%, networks <= 3.4%
+
+\paragraph{Training-set sizes.} On the Laplace chain, EM from noisy sequences was run for $N$ from 32 to 2{,}048, while
+the clean-data kernel and the two networks go up to 32{,}768. The larger sizes were added later, to ask whether the
+networks catch up with the kernel given much more data, and this question only needs the clean-data fits, where the
+kernel and the networks see the same sequences. These fits are also the only cheap ones at large $N$. From clean data
+the transition counts $\Xi$ are computed once, in a few milliseconds, and an M-step then costs the same at every $N$.
+From noisy data every EM iteration runs BP over all $N$ sequences, so its cost grows in proportion to $N$: $3.4$\,s at
+$N=2{,}048$ for the mixture (\cref{app:compute}), about a minute at $N=32{,}768$, which makes 15 to 30 hours per fit and
+seed over the 1{,}200 to 2{,}400 iterations. Nothing else stops these runs, and noisy EM at large $N$ is not covered by
+our results.
+% src: E58 registry (sizes 32..32768 added 31 Oct for the clean arms; clean Xi 5 ms at N = 2048; M-step does not depend
+% on N); E63 timing 3.4 s / 2.5 s per EM iteration at N = 2048 -> x16 = 54 s / 40 s; x1200 / x2400 = 18 h / 27 h
 
 \paragraph{M-steps.} For the mixture, the M-step is a closed-form update \cite{meng1993maximum}: each component's weight,
 mean and variance are the weighted frequency, mean and variance of the residuals $g_i-\alpha g_j$, with weights $\Xi_{ij}$
