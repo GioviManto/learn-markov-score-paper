@@ -5,7 +5,8 @@ Diffusion models are inspired by nonequilibrium thermodynamics \cite{sohl2015dee
 models for pictures \cite{rombach2022latent,betker2023dalle3}, videos \cite{veo3}, 3D protein structures
 \cite{abramson2024alphafold3} and many other kinds of data. They reverse a stochastic differential equation
 \cite{anderson1982reverse,ho2020denoising,song2021scorebased} using the score
-$\mathbf{s}_t(\mathbf{x})=\nabla_{\mathbf{x}}\log p_t(\mathbf{x})$, which can be rewritten as a posterior mean
+$\mathbf S_t(\mathbf x)
+    := \nabla_{\mathbf x}\log p_t(\mathbf x)$, which can be rewritten as a posterior mean
 \cite{robbins1956empirical,vincent2011connection,efron2011tweedie}. Much has been learned about how these models work:
 they go through distinct dynamical regimes \cite{biroli2023generative,biroli2024dynamical,achilli2026speciation}, they
 generalise instead of memorising for reasons that are now partly understood
@@ -20,6 +21,7 @@ passing \cite{pearl1988probabilistic,mezard2002analytic,mezard2003passing,mezard
 (\cref{sec:tree,sec:grid}). Finally, we learn the kernel (\cref{sec:laplace}) and test the method on the stochastic
 Allen--Cahn field \cite{allen1979microscopic} (\cref{sec:allen-cahn}).
 
+\paragraph{Contributions.}
 Our main contributions are:
 \begin{itemize}
 \item For any first-order Markov chain, belief propagation gives the exact score, because a Markov chain observed through
