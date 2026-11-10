@@ -74,7 +74,7 @@ reach the exact score even with unlimited data: its best relative error is $0.20
 $r=1$, 2, 4 and 8.
 % src: thesis tools/fig_ch10.py::windowed_oracle([1,2,4,8]) = 0.2023, 0.0890, 0.0294, 0.0066 (alpha=0.85, L=32)
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
   \centering
   \includegraphics{fig_locality_curve}
   \caption{The ratio $r(t)$ of \cref{app:measures}: size of $\mathbf Q_t$ outside the tridiagonal band, relative to
@@ -89,7 +89,7 @@ others stay at zero. At small noise the Laplace score saturates. At large noise 
 like this, which is why the Gaussian approximation of \cref{fig:grid-vs-gaussian} fails at small noise.
 % src: tools/paper_figs/thesis/fig_ch07.py grid_bp_score / gaussian_score (alpha=0.85, L=9, k=4), checked 8 Nov 2026
 
-\begin{figure*}[h]
+\begin{figure*}[!htbp]
   \centering
   \includegraphics{fig_laplace}
   \caption{The Laplace chain. (a) Law of the noise $\varepsilon_k$, Laplace against Gaussian with the same variance.
@@ -131,7 +131,7 @@ points: over 2{,}000 sequences the scores differ by $1.1\times10^{-5}$ in relati
 larger $t$ (\cref{fig:grid-vs-gaussian}).
 % src: fig_grid_gaussian (exp_01/grid_sweep_M.csv); figs_v2._closure_sweep (closure_sweep_2000.csv)
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
   \centering
   \includegraphics{fig_grid_gaussian}
   \caption{Grid BP against the exact score $-\mathbf Q_t\mathbf x$ of the Gaussian chain ($\alpha=0.8$) for three grid
@@ -181,7 +181,7 @@ to nine times the error of the kernels. At test time, BP on the 401-point grid t
 twelve noise levels. However, reducing the number of points on the grid notably reduces the time consumed.
 % src: outputs/hpc_E63/timing.csv (E63, tools/core/read_e63.py D1); e63_curves_wall.csv at N = 2048
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
   \centering
   \includegraphics{fig_wall}
   \caption{The curves of \cref{fig:steps} against wall-clock seconds on one CPU thread ($N=2048$, median over 16
@@ -216,7 +216,7 @@ closest to the true kernel of all the families.
 % src: tools/core/read_e56.py (E56): P1 16/16, P2 ratios 1.07-1.35, P4 loglinear2d vs window 0/16, P5 Hellinger
 % energy 0.0394 (smallest), shift bases 0.046-0.049, loglinear2d 0.1071
 
-\begin{figure*}[h]
+\begin{figure*}[!htbp]
   \centering
   \includegraphics{fig_families}
   \caption{What each kernel family learns from noisy sequences: the learned law of the noise
@@ -226,7 +226,7 @@ closest to the true kernel of all the families.
   % src: mixture thesis exp_18 (innovation_density.csv); the six others outputs/hpc_E56_s*/densities.csv, seed 0
 \end{figure*}
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
   \centering
   \includegraphics{fig_families_error}
   \caption{Relative score error of every kernel family learned by EM, and of the best of the six networks, from
@@ -239,7 +239,7 @@ closest to the true kernel of all the families.
 \section{Other networks}
 \label{app:networks}
 
-\begin{table}[h]
+\begin{table}[!htbp]
   \caption{The six networks: the hyperparameters screened, the configuration kept, and its number of parameters. Every
   configuration kept predicts the noise.}
   \label{tab:networks}
@@ -273,7 +273,7 @@ improving with $N$, and BiGRU is the best network from $N=128$ on, still 2.2 to 
 neural kernel beats each of the six networks in every seed at every $N$.
 % src: per-seed mean ratios (E03 vs E02a): BiGRU 2.22, 2.45, 2.24, 2.83; read_e56 paired wins energy vs each network
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
   \centering
   \includegraphics{fig_networks}
   \caption{The six networks against the mixture and the neural kernel learned by EM. Laplace chain, mean over 16 seeds,
@@ -300,7 +300,7 @@ times worse. The advantage shrinks steadily as $\delta$ grows, and the networks 
 $4\times10^{-2}$ nats per site.
 % src: fig_nonmarkov printout: beta=0.1 d=4.61e-6 cnn 14.84/10.92 mlp 22.48/17.64; break-even 1.08e-2 .. 3.96e-2
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
   \centering
   \includegraphics{fig_nonmarkov_delta}
   \caption{Error of a network divided by the error of first-order EM--BP, against the distance $\delta$ from the data to
@@ -320,7 +320,7 @@ $\phi_2$, below the best network, and the learned $\phi_2$ is within $0.01$ of t
 % src: tools/core/read_e62.py (E62): P1 first/floor at 2048 = 1.01-1.13; P2 pair < first 8/8 (phi2 >= 0.1); P4 pair <
 % best net >= 7/8 at every phi2 and N; D3 fitted phi2
 
-\begin{figure}[h]
+\begin{figure}[!htbp]
   \centering
   \includegraphics{fig_nonmarkov_ar2}
   \caption{Second-order Laplace chains, $N=2048$: the first-order kernel learned by EM, the best possible first-order
@@ -342,7 +342,7 @@ has unit variance, and choose the lattice spacing so that neighbouring sites hav
 temperature.
 % src: outputs/E32/cells.json (h = 1, 0.419, 0.226, 0.150 at Theta = 0.3, 0.5, 1, 2; rho1 0.848-0.850)
 
-\begin{figure*}[h]
+\begin{figure*}[!htbp]
   \centering
   \includegraphics{fig_field}
   \caption{The Allen--Cahn field. (a) The double-well potential $V(\phi)$. (b) One exact sample of the standardised
@@ -370,7 +370,7 @@ reach the neural kernel's error.
 % src: figures/tab_field.tex (tools/paper_figs/make_paper_figures.py::tab_field); E55 finished cells: wins 8/8/8/6;
 % U-Net at N=8192 reaches the kernel's N=2048 error in every cell
 
-\begin{table}[h]
+\begin{table}[!htbp]
   \caption{Allen--Cahn field: relative score error divided by that of the best linear denoiser, from 2{,}048 training
   sequences; mean over 16 seeds (8 for the neural kernel and the U-Net). Best of four: a window CNN and a transformer,
   each trained in two ways on the same noisy sequences as EM. Dashes: not run.}

@@ -10,6 +10,7 @@
 \setlength{\@dblfpsep}{14pt plus 4pt}
 \setlength{\@dblfpbot}{0pt plus 1fil}
 \makeatother
+\usepackage{placeins}
 
 \icmltitlerunning{Learning Scores for Markov Sequences in Generative Diffusion}
 
@@ -54,6 +55,8 @@ synthetic sequences and a simulated physical field with known ground truth. We s
 \newpage
 \appendix
 \onecolumn
+\let\appendixsection\section
+\renewcommand{\section}{\FloatBarrier\appendixsection}
 \input{draft/A-appendix}
 
 \end{document}
