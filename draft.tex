@@ -1,12 +1,15 @@
-%% REFERENCE DRAFT, rewritten 8 Nov 2026 from the user's main.tex (their text up to Allen-Cahn) on their plan: main text
-%% compares the mixture, Fourier and neural kernels with a global MLP and a window CNN; the ablations are in the
-%% appendix. Read draft2.pdf, or set Menu -> Main document -> draft2.tex in Overleaf. main.tex is the user's paper and is
-%% not touched by this file. Figures specific to this draft live in figures/draft/ and are found first.
-%% Every number carries a "% src:" comment naming where it was read.
 \documentclass{article}
 \input{preamble}
 \graphicspath{{figures/draft/}{figures/}}
-\raggedbottom  % the ICML class sets \flushbottom; with it, short columns stretch their paragraph gaps
+\raggedbottom
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{14pt plus 4pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\setlength{\@dblfptop}{0pt}
+\setlength{\@dblfpsep}{14pt plus 4pt}
+\setlength{\@dblfpbot}{0pt plus 1fil}
+\makeatother
 
 \icmltitlerunning{Learning Scores for Markov Sequences in Generative Diffusion}
 
