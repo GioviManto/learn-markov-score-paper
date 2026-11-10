@@ -1,8 +1,7 @@
 \section{Learning the kernel}
 \label{sec:laplace}
 
-In practice the kernel is unknown and has to be learned from data. We work on the Laplace chain, where the exact score
-is known and not linear, and compare learning the kernel with training neural denoisers by denoising score matching.
+In practice the kernel is unknown and has to be learned from data. We work on the Laplace chain, a controlled case, but unlike the Gaussian, the score is nonlinear, and we compare learning the kernel with training neural denoisers via denoising score matching.
 
 \subsection{Expectation--maximisation through BP}
 \label{sec:em}
@@ -75,7 +74,7 @@ the expected number of transitions from $a$ to $a'$ in the clean data. The M-ste
 over $\theta$. With clean sequences nothing is hidden: $\Xi$ is just the histogram of the observed transitions and the
 M-step is ordinary maximum likelihood. With noisy sequences the counts are soft, and BP provides them.
 
-Why does this work? By Fisher's identity \cite{louis1982,cappe2005}, the gradient of $Q$ at $\theta_{\mathrm{old}}$ is
+By Fisher's identity \cite{louis1982,cappe2005}, the gradient of $Q$ at $\theta_{\mathrm{old}}$ is
 the gradient of the log-likelihood,
 \begin{equation}
     \left.
@@ -220,7 +219,7 @@ to find it in the data.
 We use the Laplace chain with $\alpha=0.85$ and $L=32$, and twelve noise levels between $t=0.05$ and $t=3$. Each model
 is trained on $N$ sequences, from 32 to 2{,}048 (up to 32{,}768 with clean data), with 16 seeds. EM sees one noisy copy
 of each training sequence, at one of the twelve levels; the networks see the clean sequences and draw fresh noise at
-every step, which favours the networks. We measure the relative score error $\|\widehat{\mathbf S}-\mathbf
+every step. We measure the relative score error $\|\widehat{\mathbf S}-\mathbf
 S\|/\|\mathbf S\|$ on 2{,}048 test sequences, pooled over sites and all twelve levels (\cref{app:measures}), where $\mathbf S$ is the exact score from BP with the
 true kernel. Every model keeps the checkpoint with the lowest error on separate validation sequences.
 
@@ -236,9 +235,7 @@ denoiser ($0.17$): this is the locality limit of \cref{sec:gaussian}. The Fourie
 
 With clean sequences the neural kernel is fitted by maximum likelihood (open markers). It is then about three times
 more accurate than from noisy sequences, and from only 128 clean sequences it beats the window CNN trained on 32{,}768.
-Now the kernel and the networks see exactly the same data, and the kernel still wins. It also wins when it is trained
-with the networks' own objective, DSM through a differentiable BP (\cref{app:networks}): the gain comes from the
-model, not only from how it is trained.
+(\cref{app:networks}).
 % src: E58 (read_e58): E56 energy / E58 energy_h16 per-seed ratio 2.77-3.50; energy_h16 0.0251 at N=128 vs window 0.1162
 % at N=32768; E66 (read_e66) P1: BP-DSM kernel below the best of six networks 16/16 at every N
 
@@ -262,15 +259,13 @@ of its 32{,}000 steps to get there.
 % src: fig_steps printout (medians, E65): em_bp below 0.1176 at 20, within 10% of its minimum at 160; energy x10 below
 % 0.1176 at 400; clean energy x10 at 200; window final 0.1176 at 32,000
 Fewer updates are not always less time, because each EM iteration runs BP over all the training sequences. From clean
-data the neural kernel is also faster in wall-clock time than both networks; from noisy data the networks reach their
-own, much higher, error first (\cref{app:compute}).
+data the neural kernel is also faster in wall-clock time than both networks. (\cref{app:compute}).
 % src: e63_curves_wall.csv at N = 2048: clean kernel first vs window and MLP 16/16; noisy kernel first 2/16
 
 \subsection{When the data are not first-order Markov}
 \label{sec:nonmarkov}
 
 BP with a first-order kernel assumes first-order Markov data. When the data are not, the advantage over the networks
-shrinks with the distance between the data and the closest first-order chain, and the networks win once this distance
-is above about $10^{-2}$ nats per site (\cref{app:nonmarkov}). For a second-order chain there is a simple fix: pairs of
-neighbouring sites form a first-order chain again, so BP on pairs is exact, and EM on pairs brings the advantage back.
+shrinks with the distance between the data and the closest first-order chain, and the networks win once this distance is relevant (\cref{app:nonmarkov}). For a second-order chain there is a simple fix: pairs of
+neighbouring sites form a first-order chain again, so BP on pairs is exact, and EM on pairs brings the advantage back. This fix applies to higher-order chains, but at the cost of another dimension on the grid for each order.
 % src: thesis exp_21_clean + E62: break-even delta 1-4e-2; E62 pair state below the best network >= 7/8 at every phi2

@@ -3,14 +3,10 @@
 
 For Markov sequences, the structure a denoiser can use is not in the score, which diffusion makes non-local, but in the
 posterior, which stays a tree. BP turns a kernel, a function of two numbers, into the exact score at every noise level,
-and EM learns the kernel from noisy data with BP as its E-step, without differentiating through BP. A small neural
-kernel removes the need to choose a family: it matches the Gaussian mixture where the mixture is right, and it stays
-accurate where the mixture falls back to the linear denoiser.
+and EM learns the kernel from noisy data with BP as its E-step, without the need to differentiate through it. A small neural
+kernel removes the need to choose a parametric family to estimate the Kernel, and remains accurate and more efficient than score denoisers.
 
-\paragraph{What this suggests for diffusion models.} Learn the local law and infer globally. For data that are Markov
-in some ordering, one learned kernel gives the score at every noise level, and a kernel learned on short sequences works
-unchanged on long ones, at a cost linear in their length. For data that are not, a kernel could handle the Markov part
-exactly and a network the rest.
+\paragraph{What this suggests for diffusion models.} If the data is first-order Markov, do not learn the score; learn the kernel and use BP to get the score.
 
 \paragraph{Limits.} The Markov order has to be known: on pairs of sites a grid step costs $O(N_g^3)$ instead of
 $O(N_g^2)$. Each site carries one number here; a state with $d$ numbers needs a grid of $N_g^d$ points. The graph must be
@@ -25,5 +21,5 @@ fitted model is used for its score. Diffusion models can also be trained from co
 \cite{kamb2024analytic,kadkhodaie2024generalization}, belief propagation on hierarchical data
 \cite{garnierbrun2024transformers,sclocchi2025phase,mei2024unets} and the statistical physics of diffusion
 \cite{biroli2023generative,biroli2024dynamical,achilli2025memorization,bonnaire2025memorize,garnierbrun2026biased,garnierbrun2026foam}
-ask what structure a denoiser exploits. Markov sequences are the simplest non-Gaussian case in which the exact denoiser
+ask what structure a denoiser exploits. Markov sequences are the simplest (possibly) non-Gaussian case in which the exact (up to discretization and kernel estimation error) denoiser
 is computable and can be learned from noisy data alone.

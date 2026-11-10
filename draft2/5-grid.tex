@@ -5,7 +5,7 @@ Unlike in discrete-state models, each latent variable here is a real number, $a_
 therefore a non-negative function of a continuous variable, not a finite vector, and the message updates involve
 integrals over $\mathbb R$ that have no closed form for a non-Gaussian kernel.
 
-We compute these integrals numerically on a uniform grid
+We discretize these integrals on a uniform grid
 \begin{equation}
     g_i=-A+ih,\quad i=0,\ldots,N_g-1,\quad h=2A/(N_g-1),
 \end{equation}
@@ -36,8 +36,9 @@ update for numerical stability, and the posterior mean is
 which goes into Tweedie's formula to give the score.
 
 A sequence costs $O(LN_g^2)$ operations. The grid introduces a discretisation error, which we control by refining the
-grid and enlarging the domain, and which we test against the Gaussian chain, where the exact score is known. There grid
-BP matches $-\mathbf Q_t\mathbf x$ to double-precision round-off for $t\geq0.05$, our smallest noise level. On the
+grid and enlarging the domain, and which we test against the Gaussian chain, where the exact score is known.
+Grid BP agrees with the exact score $-\mathbf Q_t\mathbf x$ to within floating-point
+rounding (about $10^{-15}$) for all $t\geq0.05$, our smallest noise level.On the
 Laplace chain, going from 401 to 801 points changes the score by about $10^{-5}$ in relative terms (\cref{app:bp}).
 % src: fig_grid_gaussian (exp_01/grid_sweep_M.csv); figs_v2._closure_sweep, grid 401 vs 801 median 1.10e-5 at t=0.05
 
@@ -59,9 +60,10 @@ for the Gaussian chain, because Gaussian kernels and noise terms stay Gaussian u
 It is not exact for the Laplace chain: Gaussian messages throw away what is non-Gaussian and give back the score of the
 Gaussian chain with the same covariance, which is linear in $\mathbf x$ and cannot see the peak of the Laplace law.
 
-This matters most at small noise, where the Laplace score saturates. \Cref{fig:grid-vs-gaussian} shows the cost: at
-$t=0.05$ the Gaussian approximation has a median relative error of $0.24$, against $10^{-5}$ for grid BP. The gap closes
-as $t$ grows, because both scores become linear.
+This matters most at small noise, where the Laplace score is close to a step that flips sign at zero.
+. \Cref{fig:grid-vs-gaussian} shows the cost: at
+$t=0.05$ the Gaussian approximation has a median relative error of $0.24$, against $10^{-5}$ for grid BP. The gap closes as $t$ grows, because the noising process approaches
+isotropic Gaussian noise and both fields end up with the same score.
 % src: closure_sweep_2000.csv: t=0.05 lin_med 0.2387, grid_med 1.10e-5
 
 This is also different from approximate message passing (AMP) and Thouless--Anderson--Palmer (TAP) methods

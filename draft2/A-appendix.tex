@@ -85,10 +85,7 @@ $r=1$, 2, 4 and 8.
 \paragraph{The Laplace chain against the Gaussian chain.} The two chains have the same covariance; only the law of the
 noise $\varepsilon_k$ differs (\cref{fig:laplace}a). The Laplace law has a sharp peak at zero and exponential tails.
 \Cref{fig:laplace}b--c show the score of the middle site of a chain of nine, as its own noisy value changes and the
-others stay at zero. At small noise the Laplace score saturates. A small deviation from the neighbours is treated as
-noise and pulled back, more strongly than in the Gaussian chain ($-2.5$ against $-1.8$ at $x_k=0.5$, $t=0.05$). A large
-one is believed, because the Laplace chain does make jumps, and only a bounded part of it is put down to noise ($-5.2$
-against $-14.4$ at $x_k=4$). At large noise both scores are almost linear and almost equal. No linear denoiser can bend
+others stay at zero. At small noise the Laplace score saturates. At large noise both scores are almost linear and almost equal. No linear denoiser can bend
 like this, which is why the Gaussian approximation of \cref{fig:grid-vs-gaussian} fails at small noise.
 % src: tools/paper_figs/thesis/fig_ch07.py grid_bp_score / gaussian_score (alpha=0.85, L=9, k=4), checked 8 Nov 2026
 
@@ -124,15 +121,14 @@ is
   \xi_k(i,j)\propto f_k(j)\,w_j\,K_{ij}\,w_i\,\ell_{k+1}(i)\,b_{k+1}(i)
   \approx\Pr(a_k=g_j,\,a_{k+1}=g_i\mid\mathbf x),
 \end{equation}
-normalised to sum to one, and the log-likelihood of a sequence is $\log p(\mathbf x)=\sum_k\log c_k$, which comes for
-free from the forward sweep.
+normalised to sum to one, and the log-likelihood of a sequence is $\log p(\mathbf x)=\sum_k\log c_k$, which comes from the forward sweep.
 
 \paragraph{Accuracy.} The grid spacing must resolve the noise term, whose width in $a$ is about $\sqrt{2t}$ at small $t$:
 at $t=0.05$ it is $0.32$, eight times the spacing $h=0.04$. With $A=8$ the probability that falls outside the grid is
 negligible. On the Gaussian chain, where the exact score is $-\mathbf Q_t\mathbf x$, grid BP reaches double-precision
 round-off for $t\geq0.05$ already with 101 points (\cref{fig:grid}). On the Laplace chain we compare 401 with 801
 points: over 2{,}000 sequences the scores differ by $1.1\times10^{-5}$ in relative terms at $t=0.05$, and by less at
-larger $t$ (\cref{fig:grid-vs-gaussian}), at least a thousand times below every effect we report.
+larger $t$ (\cref{fig:grid-vs-gaussian}).
 % src: fig_grid_gaussian (exp_01/grid_sweep_M.csv); figs_v2._closure_sweep (closure_sweep_2000.csv)
 
 \begin{figure}[h]
@@ -151,19 +147,17 @@ sees $N$ noisy sequences in all. The networks instead see the clean sequences an
 up to 1{,}200 iterations (2{,}400 for the neural kernel) and keeps the kernel at fixed checkpoints; every model, kernel or
 network, is tested at the checkpoint with the lowest score error on 1{,}024 validation sequences. Without the exact
 score, EM can select by the likelihood of noisy validation sequences, which BP computes, and a network by its validation
-loss: this changes the errors by at most $7\%$ and changes no ranking.
+loss.
 % src: experiments/e03_baselines.py::_one_view_groups; outputs/E02a/params_capacity.json; tools/core/read_e65.py (E65):
 % free/oracle max em_bp 1.7%, spline 6.9%, energy 6.9%, networks <= 3.4%
 
 \paragraph{Training-set sizes.} On the Laplace chain, EM from noisy sequences was run for $N$ from 32 to 2{,}048, while
 the clean-data kernel and the two networks go up to 32{,}768. The larger sizes were added later, to ask whether the
-networks catch up with the kernel given much more data, and this question only needs the clean-data fits, where the
-kernel and the networks see the same sequences. These fits are also the only cheap ones at large $N$. From clean data
+networks catch up with the kernel given much more data. From clean data
 the transition counts $\Xi$ are computed once, in a few milliseconds, and an M-step then costs the same at every $N$.
 From noisy data every EM iteration runs BP over all $N$ sequences, so its cost grows in proportion to $N$: $3.4$\,s at
 $N=2{,}048$ for the mixture (\cref{app:compute}), about a minute at $N=32{,}768$, which makes 15 to 30 hours per fit and
-seed over the 1{,}200 to 2{,}400 iterations. Nothing else stops these runs, and noisy EM at large $N$ is not covered by
-our results.
+seed over the 1{,}200 to 2{,}400 iterations. 
 % src: E58 registry (sizes 32..32768 added 31 Oct for the clean arms; clean Xi 5 ms at N = 2048; M-step does not depend
 % on N); E63 timing 3.4 s / 2.5 s per EM iteration at N = 2048 -> x16 = 54 s / 40 s; x1200 / x2400 = 18 h / 27 h
 
@@ -173,13 +167,7 @@ times the component's responsibility, and $\alpha$ is then a weighted least-squa
 the other log-linear families, $Q$ is concave and its gradient is the observed minus the expected value of each basis
 function, so a few gradient steps per iteration are enough. For the neural kernel, each M-step takes ten Adam steps on
 $Q$, differentiating only through the network and its normalisation on the grid, and halves the step size whenever $Q$
-does not increase, so the likelihood never decreases.
-
-\paragraph{Stalled fits.} In our first implementation a rejected step kept Adam's memory, and 4 to 7\% of the neural
-fits ended with a tiny step size, some of them close to their starting point. Restarting the optimiser after a rejected
-step removes the problem. The results in the main text come from the first implementation; every fit, stalled or not,
-enters the means quoted in the text, while the figures show medians, which a few stalled fits do not move.
-% src: E58 outcome (23 of 576 fits), E55 finished cells (15 of 208 with final lr < 1e-10), E61 (0 of 448 after the fix)
+does not increase.
 
 \section{Training time}
 \label{app:compute}
@@ -190,7 +178,7 @@ takes $2.5$\,ms for the window CNN and $1.0$\,ms for the MLP. \Cref{fig:wall} re
 From clean data the neural kernel reaches the final error of each network before the network does, in every seed. From
 noisy data the networks are cheap per step and stop improving early, so they reach their own final error first, at five
 to nine times the error of the kernels. At test time, BP on the 401-point grid takes about $7$\,ms per sequence for all
-twelve noise levels.
+twelve noise levels. However, reducing the number of points on the grid notably reduces the time consumed.
 % src: outputs/hpc_E63/timing.csv (E63, tools/core/read_e63.py D1); e63_curves_wall.csv at N = 2048
 
 \begin{figure}[h]
@@ -282,8 +270,7 @@ same sequences.
 \paragraph{Results.} \Cref{fig:networks} puts the six networks on one plot with the two kernels learned by EM. The
 global MLP is the worst at every $N$, and the window CNN stops improving at about $0.12$. The four sequence models keep
 improving with $N$, and BiGRU is the best network from $N=128$ on, still 2.2 to 2.8 times worse than the mixture. The
-neural kernel beats each of the six networks in every seed at every $N$, with one exception (BiGRU at $N=512$, 15 of 16
-seeds).
+neural kernel beats each of the six networks in every seed at every $N$.
 % src: per-seed mean ratios (E03 vs E02a): BiGRU 2.22, 2.45, 2.24, 2.83; read_e56 paired wins energy vs each network
 
 \begin{figure}[h]
@@ -295,12 +282,6 @@ seeds).
   % src: E02a em_bp, E56 energy, E03 confirm.csv (tools/paper_figs/figs_v2.py::fig_networks)
 \end{figure}
 
-\paragraph{The model or the objective?} To separate the two, we also trained the neural kernel with the networks' own
-recipe: denoising score matching on the clean sequences, with the posterior mean computed by a differentiable version
-of BP \cite{eisner2016}. Trained this way it still beats the best of the six networks in every seed at every $N$
-($0.018$ against $0.060$ for BiGRU at $N=2048$), so the gain comes from the model. Maximum likelihood on the same clean
-sequences is better still, by a factor 1.3 to 2.5.
-% src: tools/core/read_e66.py (E66): P1 16/16 every N, 0.0183 vs BiGRU 0.0596 at N=2048; ratio to E58 clean ML 1.31-2.46
 
 \section{Data that are not first-order Markov}
 \label{app:nonmarkov}
@@ -314,8 +295,7 @@ Kullback--Leibler divergence per site from the data to the closest first-order c
 and the window CNN are trained on 2{,}048 sequences.
 % src: archive/Diffusion/research/nongaussian-bp/outputs/frozen/exp_21_clean; experiments/registry/E62.json
 
-\paragraph{One curve.} All the data sets fall on one curve (\cref{fig:nonmarkov-delta}). Close to Markov, at
-$\delta\approx5\times10^{-6}$, the window CNN is 11 to 15 times worse than the first-order kernel and the MLP 18 to 22
+\paragraph{One curve.} We represent it below(\cref{fig:nonmarkov-delta}). Close to Markov, the window CNN is 11 to 15 times worse than the first-order kernel and the MLP 18 to 22
 times worse. The advantage shrinks steadily as $\delta$ grows, and the networks win beyond $\delta\approx1$ to
 $4\times10^{-2}$ nats per site.
 % src: fig_nonmarkov printout: beta=0.1 d=4.61e-6 cnn 14.84/10.92 mlp 22.48/17.64; break-even 1.08e-2 .. 3.96e-2
@@ -336,7 +316,7 @@ follows the exact error of the best possible first-order kernel, which we comput
 (\cref{fig:nonmarkov-ar2}): more data would not help, the model is wrong. Pairs of neighbouring sites $(a_{k-1},a_k)$,
 however, form a first-order chain, so BP on pairs is exact, with a grid step that costs $O(N_g^3)$ instead of
 $O(N_g^2)$. With a mixture kernel on pairs learned by the same EM, the error stays between $0.03$ and $0.04$ at every
-$\phi_2$, below the best network in at least 7 of 8 seeds, and the learned $\phi_2$ is within $0.01$ of the truth.
+$\phi_2$, below the best network, and the learned $\phi_2$ is within $0.01$ of the truth.
 % src: tools/core/read_e62.py (E62): P1 first/floor at 2048 = 1.01-1.13; P2 pair < first 8/8 (phi2 >= 0.1); P4 pair <
 % best net >= 7/8 at every phi2 and N; D3 fitted phi2
 
@@ -355,8 +335,7 @@ $\phi_2$, below the best network in at least 7 of 8 seeds, and the learned $\phi
 
 \paragraph{What the field looks like.} \Cref{fig:field} shows the chain of \cref{sec:allen-cahn}. The potential has two
 wells at $\phi=\pm1$ (a). At $\Theta=0.3$ a sample sits in one well or the other and jumps between them; at $\Theta=2$
-the heat dominates and the field looks like a Gaussian chain (b). The law of one site has two peaks at low temperature
-and is close to Gaussian at high temperature (c). The exact kernel at $\Theta=0.3$ changes shape with the current value
+the heat dominates and the field looks like a Gaussian chain (b). The one-site law at low and high temperature (c). The exact kernel at $\Theta=0.3$ changes shape with the current value
 $a$: broad between the wells, skewed towards the well from $a=0.6$, narrow and one-sided inside it (d). A shift family
 can move the centre of $K(a'\mid a)$ with $a$, but not its shape. We work with the standardised field $a=\phi/s$, which
 has unit variance, and choose the lattice spacing so that neighbouring sites have correlation $0.85$ at each

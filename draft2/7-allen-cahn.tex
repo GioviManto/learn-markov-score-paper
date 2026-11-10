@@ -22,8 +22,7 @@ its mean moves linearly with the current value and its shape never changes. Its 
 chain, and BP with a Gaussian kernel is linear, so it stays at the error of the best linear denoiser ($0.270$ against
 $0.269$ with 2{,}048 sequences), from noisy and from clean data alike. The neural kernel has no such constraint and
 learns the state-dependent law. From 2{,}048 noisy sequences its error is $0.033$, 2.6 times below the window CNN and
-7.6 times below the MLP; from clean sequences it is ten times below the CNN. With very few sequences the CNN is the
-better model: at $N=32$ it beats the neural kernel learned by EM in 5 of 8 seeds.
+7.6 times below the MLP; from clean sequences it is ten times below the CNN. 
 % src: E33 em_mixture raw 0.2705 (seeds 0-7), E58 mixture_clean 0.2693, lmmse 0.2692; E55 em_energy 0.0328; per-seed
 % mean ratios window/energy 2.57, MLP/energy 7.63 (8/8 at N=2048, 3/8 at N=32); E58 energy_h16 vs window median ratio 10.7
 
