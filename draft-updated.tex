@@ -75,6 +75,8 @@ training sequences and 22 to 69 with 32{,}768.
 \item $L_{\rm DSM}$ against $\phi_2/\phi_1$, EM against networks, in the main text (\cref{fig:nonmarkov}); new: BP plus
   a learned correction, which beats both BP and the BiGRU at every $\phi_2>0$.
 \item New results: networks at their best (\cref{sec:results}), a tree with hidden nodes (\cref{sec:tree-hidden}).
+\item New (21 Nov): do the generated samples copy the training sequences? No kernel ever does; networks trained to
+  the end on 32 sequences do, none at their selected checkpoint (\cref{sec:memorization}, \cref{app:memorization-gen}).
 \item Calcium imaging: synthetic and real (Spikefinder) runs submitted, \pending{results pending}.
 \item Still in the relative score error (not yet converted, appendix only): \cref{tab:field}, \cref{fig:steps,fig:wall}.
 \end{itemize}}}
@@ -374,11 +376,18 @@ also much smaller (\cref{fig:params}).
 \label{sec:memorization}
 With 32 training sequences, five of the six networks drive their training DSM loss far below the Bayes loss, $0.07$ to
 $0.14$ against $0.27$, while their test loss rises to $0.5$--$0.75$: they memorize (\cref{app:memorization}); only the
-window CNN does not. With 2{,}048 sequences training and test losses agree to within $0.01$. BP with the clean-data
-neural kernel is 20 to 55 times closer to the Bayes loss than the best network, at every $n$.
+window CNN does not. With 2{,}048 sequences training and test losses agree to within $0.01$. Their samples show it
+too (\cref{app:memorization-gen}): trained to the end on 32 sequences, the global MLP reproduces a training sequence in
+45 to 49\% of its samples and the BiGRU in 10 to 12\%, while no kernel, and no network at its selected checkpoint,
+produces a copy at any $n$. BP with the clean-data neural kernel is 20 to 55 times closer to the Bayes loss than the
+best network, at every $n$.
 % src: read_e87 (E87): P1 5/6 networks (window not), P2 gaps at n=32 0.38-0.65 (window 0.04), at 2048 <= 0.0087; P4
 % energy_clean below every network's best 8/8 at every n. Excess medians n=32: best net 1.30e-2 vs kernel 6.30e-4
 % (x21); n=2048 1.35e-3 vs 2.45e-5 (x55)
+% src: read_e92 (E92, frozen 21 Nov, outputs/hpc_E92_{laplace,field}): G1, G2 pass; P1, P2, P4 confirmed, P3 falsified
+% (2 of 5 networks >= 0.1 at n=32 on the chain, needed 3), P5 falsified (kernel train-test gap up to 0.0043 > 2e-3,
+% window CNN final gap on the field 0.036 < 0.05). frac_mem _final n=32 chain/field: mlp 0.448/0.492, bigru 0.103/0.122;
+% every kernel and every _sel network 0 in every seed and n.
 
 \subsection{Data that are not first-order Markov}
 \label{sec:nonmarkov}
@@ -916,8 +925,10 @@ mixture $1.05\times10^{-4}$, and the neural kernel fitted on 2{,}048 clean seque
 \end{figure}
 
 
-\section{Training and test losses of the networks}
+\section{Memorization}
 \label{app:memorization}
+
+\paragraph{Training and test losses.}
 
 The DSM loss of \cref{eq:dsm} has a floor: on fresh data no denoiser beats the exact posterior mean, which BP
 computes with the true kernel; we call its loss the Bayes loss. We retrain the six networks of \cref{tab:networks} on
@@ -940,6 +951,54 @@ neural kernel fitted on clean sequences below every network in every seed.
   \label{fig:memorization}
   % src: tools/paper_figs/figs_v4.py::fig_memorization on outputs/hpc_E87_s{0,4} (curves.csv, floors.csv), frozen
   % 19 Nov 2026; read_e87: G1 ok, P1-P4 confirmed
+\end{figure*}
+
+\paragraph{Do the samples copy the training sequences?}
+\label{app:memorization-gen}
+In the diffusion literature memorization means that generated samples reproduce training data
+\cite{gu2023memorization}. We test it on the Laplace chain and on the Allen--Cahn field at $\Theta=0.3$, with
+$n\in\{32,128,512,2048\}$ training sequences and 4 seeds. Every model generates 2{,}048 sequences with the same
+ancestral sampler: 400 geometric steps from $t=3$ to $t=0.005$, the posterior mean as the last readout, and the same
+sampler noise for every model. For a sample let $d_1\le d_2$ be its Euclidean distances to the two nearest training
+sequences; it counts as a copy when $d_1/d_2<1/3$ \cite{gu2023memorization}. We also report the median of $d_1$
+divided by the same median measured against $n$ new draws of the chain, which is 1 when the samples are no closer to
+the training sequences than to unseen ones, and the sliced Wasserstein-2 distance to 2{,}048 new draws. The models are
+BP with the kernels fitted on the same $n$ sequences, the neural kernel by EM from their noisy versions and by maximum
+likelihood on the clean ones (and, on the chain, the $C=8$ mixture by EM), rebuilt from their stored parameters; and
+five networks of \cref{tab:networks} (all but the TCN), retrained by DSM on the clean training sequences for
+32{,}000 steps with noise levels drawn log-uniformly in $[0.005,3]$, read out at the checkpoint selected on validation
+sequences and at the end of training. Two references bracket the scale: new draws of the chain, and the empirical
+optimum, the exact minimizer of the DSM loss on the training set, $\mathbb E[\mathbf a\mid\mathbf x]=\sum_j
+w_j\mathbf a_j$ with $w_j\propto\exp(-\|\mathbf x-e^{-t}\mathbf a_j\|^2/2\Delta_t)$, a perfect memorizer.
+
+The empirical optimum copies every sample at every $n$ and new draws copy none, so the test detects copying
+(\cref{fig:memorization-gen}). No kernel produces a copy, in any seed, at any $n$, on either data set, and the distance
+ratio of every kernel stays between $0.99$ and $1.01$. Trained to the end on 32 sequences, the global MLP copies $45\%$
+of its samples on the chain and $49\%$ on the field, the BiGRU $10\%$ and $12\%$, the transformer $5\%$ and $6\%$, the
+U-Net about $1\%$ and the window CNN none; with 128 sequences at most $2.1\%$, and none from 512 on. At the selected
+checkpoint no network copies, in any seed, at any $n$. Not copying is not the same as sampling well: with 32 and 128
+sequences the selected global MLP stops so early that its samples are far from the chain (sliced $W_2$ near $5$,
+against $0.04$ to $0.06$ for new draws), and at every $n$ the samples of every kernel are closer to the chain than those
+of every network. The train--test gap of the DSM loss agrees: for the kernels it is at most $0.004$ at every $n$, the
+order of the true kernel's own gap (up to $0.003$, the noise of a loss averaged over few sequences), against $0.04$ to
+$0.65$ for the networks trained to the end on 32 sequences.
+% src: tools/core/read_e92.py on outputs/hpc_E92_{laplace,field}/memorization.csv (E92, frozen 21 Nov 2026, amendment 1):
+% G1 worst 2.0e-7, G2 worst 0.000; P1, P2, P4 confirmed; P3, P5 falsified. Seed means: frac_mem n=32 _final chain/field
+% mlp 0.448/0.492, bigru 0.103/0.122, transformer 0.052/0.056, unet 0.009/0.013, window 0/0; n=128 max 0.021 (mlp
+% field); med_ratio kernels 0.992-1.005; sw2 mlp_sel n=32/128 5.24/5.11 chain, 5.27/4.98 field, exact 0.043-0.058;
+% DSM test-train kernels max 0.0043 (energy_em chain n=32), oracle max 0.0032; nets _final n=32 0.036-0.648.
+
+\begin{figure*}[!htbp]
+  \centering
+  \includegraphics{fig_memorization_gen}
+  \caption{Do the samples copy the training sequences? (a) Laplace chain, (b) Allen--Cahn field at $\Theta=0.3$,
+  against the number $n$ of training sequences. Top: fraction of the 2{,}048 generated sequences that are copies,
+  $d_1/d_2<1/3$. Middle: median distance to the nearest training sequence over the same median against $n$ new draws.
+  Bottom: sliced Wasserstein-2 distance to new draws. Networks at the end of training (solid, filled markers) and at
+  the selected checkpoint (dashed, open markers); thick grey: new draws of the chain; dotted crosses: the empirical
+  optimum of the DSM loss. Means over 4 seeds.}
+  \label{fig:memorization-gen}
+  % src: tools/paper_figs/figs_v5.py::fig_memorization_gen on outputs/hpc_E92_{laplace,field} (E92, frozen 21 Nov 2026)
 \end{figure*}
 
 \section{Data that are not first-order Markov}
