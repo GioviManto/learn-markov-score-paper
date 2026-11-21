@@ -2,8 +2,8 @@
 
 | file | what |
 |---|---|
-| `main.tex` + `sections/` | **The paper you write.** Overleaf compiles `main.tex`. Every section has its heading, its figures in place, and grey `[notes]` saying what goes there (from the call, with transcript times) and which numbers are available, with their sources. |
-| `draft.tex` + `draft/` | The reference draft Jérôme worked on (his notes are at the top). Not edited since his 18 Nov review. To read it: Overleaf Menu → Main document → `draft.tex` (switch back afterwards). |
+| `main.tex` | **The paper you write**, one single file (no subfiles, as arXiv requires). Overleaf compiles `main.tex`. Every section has its heading, its figures in place, and grey `[notes]` saying what goes there (from the call, with transcript times) and which numbers are available, with their sources. |
+| `draft.tex` | The reference draft Jérôme worked on (his notes are at the top), now one single file. Figures in `figures/draft/`. To read it: Overleaf Menu → Main document → `draft.tex` (switch back afterwards). |
 | `draft-updated.tex` | **The one updated draft**: everything asked at the 18 Nov review (Overleaf notes, 17 Nov email, lunch pen notes), single file, DSM loss as the only metric, Figure 1 after Jérôme's sketch. Figures in `figures/draft-updated/`, extra citations in `references-updated.bib`. The green box at the top lists what changed; `\showreviewfalse` hides it. Every number has a `% src:` comment. |
 | `preamble.tex` | Shared by both: ICML 2026 kit, packages, notation, `\note{}` and `\pending{}`. Holds the one anonymity switch (below). |
 | `figures/` | Every figure, drawn at its printed size. |
@@ -23,8 +23,8 @@ field anonymised. The names stay in `main.tex`; the style hides them. The switch
 For the submission also put `\shownotesfalse` at the top of `main.tex`: the grey notes mention Jérôme, Mézard and
 the thesis. With notes hidden the PDF contains no name.
 
-**arXiv publishes the LaTeX source, comments included.** Before uploading: switch to `[preprint]`, remove `draft/`,
-`draft.tex` and `draft-updated.tex`, and strip the `%` comments (they name internal files and runs), e.g. with
+**arXiv publishes the LaTeX source, comments included.** Before uploading: switch to `[preprint]`, remove
+`draft.tex`, `draft-updated.tex` and `figures/draft*/`, and strip the `%` comments (they name internal files and runs), e.g. with
 `arxiv_latex_cleaner`. ICML allows a non-anonymous arXiv version during review; check the ICML 2027 call for the
 current wording.
 
