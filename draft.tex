@@ -62,6 +62,31 @@ denoiser, while the neural kernel stays accurate.
 \end{itemize}
 }
 
+\begin{figure*}[t]
+  \centering
+  \includegraphics{draft-updated/fig_summary}
+  \caption{Summary. (a) One sequence $\mathbf a$ of $d=32$ sites from the stochastic Allen--Cahn field, a first-order
+  Markov chain, at three noise times: $\mathbf x_t=e^{-t}\mathbf a+\sqrt{\Delta_t}\,\boldsymbol\xi$ with
+  $\Delta_t=1-e^{-2t}$ and $\boldsymbol\xi$ standard Gaussian (the same $\boldsymbol\xi$ at each $t$). (b) Top: the factor
+  graph of the posterior of $\mathbf a$ given $\mathbf x$. Clean sites $a_k$ are white, noisy sites $x_k$ grey; black
+  squares are the kernel factors $K(a_{k+1}\mid a_k)$ and the noise factors
+  $\ell_t(x_k\mid a_k)=\mathcal N(x_k;e^{-t}a_k,\Delta_t)$. It is a chain, so belief propagation (BP), one forward sweep
+  ($f_k$) and one backward sweep ($b_k$), is exact for any kernel $K$ and gives the posterior mean
+  $\mathbb E[\mathbf a\mid\mathbf x]$, hence the score
+  $\mathbf S_t(\mathbf x)=(e^{-t}\,\mathbb E[\mathbf a\mid\mathbf x]-\mathbf x)/\Delta_t$. Bottom: the neural kernel learned
+  by expectation--maximisation (EM) from $n=2{,}048$ noisy sequences, as the density of $a_{k+1}$ given $a_k$ (each column
+  scaled to its maximum): the next value jumps between the two wells of the field. (c) One sequence at $t=0.3$: the clean
+  $\mathbf a$, the noisy $e^{t}\mathbf x$, the posterior mean computed by BP with the learned kernel, and the best linear
+  denoiser $\mathbf A_t\mathbf x$ with $\mathbf A_t=e^{-t}\boldsymbol\Sigma_0\boldsymbol\Sigma_t^{-1}$,
+  $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the
+  clean sequences. (d) Excess denoising score matching loss $L_{\rm DSM}-L_{\rm Bayes}$ on test sequences (mean over twelve
+  noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over seeds. The Bayes loss
+  $L_{\rm Bayes}=0.2646$ is the lowest possible; BP with the true kernel reaches it. The global MLP, the transformer and
+  the window CNN are trained on noisy sequences by denoising score matching; the neural kernel is learned by EM from noisy
+  sequences and used inside BP. Dashed: the best linear denoiser.}
+  \label{fig:summary}
+\end{figure*}
+
 \section{Introduction}
 
 \jgb{
@@ -69,7 +94,7 @@ Diffusion models are state of the art when it comes to generating data with an a
 \cite{rombach2022latent,betker2023dalle3} and videos \cite{veo3} to protein structures \cite{abramson2024alphafold3};
 see \cite{yang2023diffusion} for a review. \jgb{Indeed, the reverse process transporting noise towards a desired data distribution underlying generative diffusion makes no prior assumption on the local or global nature of the dependencies within data samples, notably explaining their performance in images, which carry correlations at all scales without inherent directionality. While seemingly more adapted to autoregressive methods due to its superficially sequential aspect, text has increasingly also been found to be a modality where diffusion appears to be on-par or even in some cases outperform autoregressive next-token-prediction methods} \cite{lou2024discrete,sahoo2024simple,nie2025large}\jgb{.
 
-The performance of generative diffusion and associated flow matching methods across such varied modalities remains largely unexplained. While it now appears that the ability of networks to avoid memorizing training samples---despite memorization being the test-loss-optimal outcome} \cite{gu2023memorization}\jgb{---is largely related to some dynamical regularization from gradient descent training (related to the simplicity bias observed across ML)} \cite{bonnaire2025memorize,favero2025bigger}\jgb{, when and how networks manage to generalize well is not clear} \cite{marion2026understanding}\jgb{. As generalization must amount to extracting some underlying structure in data, much effort is being dedicated to understanding how both hidden structure (such as a latent tree model)} \cite{sclocchi2025phase,garnierbrun2024transformers,mei2024unets}\jgb{ as well as structure in the data support between different modes} \cite{biroli2023generative,biroli2024dynamical,achilli2026speciation,garnierbrun2026foam}\jgb{ is learned by architectures and revealed by the reverse process.
+The performance of generative diffusion and associated flow matching methods across such varied modalities remains largely unexplained. While it now appears that the ability of networks to avoid memorizing training samples---despite memorization being the test-loss-optimal outcome} \cite{gu2023memorization}\jgb{---is largely related to some dynamical regularization from gradient descent training (related to the simplicity bias observed across ML)} \cite{bonnaire2025memorize,favero2025bigger}\jgb{, when and how networks manage to generalize well is not clear} \cite{marion2026understanding}\jgb{. As generalization must amount to extracting some underlying structure in data, much effort is being dedicated to understanding how both hidden structure (such as a latent tree model)} \cite{sclocchi2025phase,garnierbrun2024transformers,mei2024unets} \jgb{as well as structure in the data support between different modes} \cite{biroli2023generative,biroli2024dynamical,achilli2026speciation,garnierbrun2026foam} \jgb{is learned by architectures and revealed by the reverse process.
 
 In this paper, we approach this question by considering data generated by a first order autoregressive (AR1) Markov process, a type of structure that seems adversarial to generative diffusion. Indeed, as diffusion indiscriminately adds unstructured noise to all entries in the sequence, it quickly leads a denoiser to be seemingly unable to exploit locality of the underlying data model. Despite this, we nonetheless show that an appropriately designed Markovian denoiser structure can allow networks to reach very good performance with a minimal model of data. By exploiting the fact that the AR1 plus noise factor graph of noisy sequences is a tree, we write the denoising with an exact Belief Propagation (sum-product) message passing algorithm running in $O(d)$ steps, with $d$ the dimension of the data. As we consider data on a continuous support, the main obstacle is the distributional nature of the messages, which we overcome by proposing a simple discretization scheme. Learning to denoise is then reduced to learning the (possibly position dependent) transition kernel characterizing the Markov chain. We propose both parametric forms for this kernel, as well as a general neural implementation. We finally show the efficiency of this denoising method on the generation of stationary states to the noisy Allen-Cahn equation from statistical physics, where the neural kernel outperforms standard deep denoisers by several orders of magnitude, both in performance and data efficiency. While we show that in this extreme case of AR1 Markov process that training the data on uncorrupted samples by maximum likelihood remains more effective than by denoising corrupted sequences, we believe that our factor graph approach could be interesting in cases where the Markov structure is coupled to some other latent models, where it could perhaps be generalized. 
 
