@@ -65,7 +65,9 @@ denoiser, while the neural kernel stays accurate.
 \section{Introduction}
 
 \jgb{
-Diffusion models are state of the art when it comes to generating data with an a-priori unknown structure [cite examples and perhaps a review]. Indeed, the reverse process transporting noise towards a desired data distribution underlying generative diffusion makes no prior assumption on the local or global nature of the dependencies within data samples, notably explaining their performance in images, which carry correlations at all scales without inherent directionality. While seemingly more adapted to autoregressive methods due to its superficially sequential aspect, text has increasingly also been found to be a modality where diffusion appears to be on-par or even in some cases outperform autoregressive next-token-prediction methods [diffusion LM].
+Diffusion models are state of the art when it comes to generating data with an a-priori unknown structure, from pictures
+\cite{rombach2022latent,betker2023dalle3} and videos \cite{veo3} to protein structures \cite{abramson2024alphafold3};
+see \cite{yang2023diffusion} for a review. Indeed, the reverse process transporting noise towards a desired data distribution underlying generative diffusion makes no prior assumption on the local or global nature of the dependencies within data samples, notably explaining their performance in images, which carry correlations at all scales without inherent directionality. While seemingly more adapted to autoregressive methods due to its superficially sequential aspect, text has increasingly also been found to be a modality where diffusion appears to be on-par or even in some cases outperform autoregressive next-token-prediction methods [diffusion LM].
 
 The performance of generative diffusion and associated flow matching methods across such varied modalities remains largely unexplained. While it now appears that the ability of networks to avoid memorizing training samples---despite memorization being the test-loss-optimal outcome [cite Gu]---is largely related to some dynamical regularization from gradient descent training (related to the simplicity bias observed across ML) [cite Bonnaire, Sclocchi], when and how networks manage to generalize well is not clear [Marion opinion paper]. As generalization must amount to extracting some underlying structure in data, much effort is being dedicated to understanding how both hidden structure (such as a latent tree model) [Wyart, Garnier-Brun line] as well as structure in the data support between different modes [Mézard Biroli mixture of Gaussians Garnier-Brun Gaussian] is learned by architectures and revealed by the reverse process.
 
@@ -677,7 +679,7 @@ is computable and can be learned from noisy data alone.
 This paper studies how much a denoiser for diffusion models can gain from knowing that its data are Markov, on
 synthetic sequences and a simulated physical field with known ground truth. We see no ethical concern specific to it.
 
-\bibliography{references}
+\bibliography{references,references-updated}
 \bibliographystyle{icml2026}
 
 \newpage
