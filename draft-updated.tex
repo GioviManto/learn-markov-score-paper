@@ -103,8 +103,7 @@ training sequences and 22 to 69 with 32{,}768.
   $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the
   clean sequences. (d) Excess denoising score matching loss $L_{\rm DSM}-L_{\rm Bayes}$ on test sequences (mean over twelve
   noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over seeds. The Bayes loss
-  $L_{\rm Bayes}=0.2646$ is the lowest possible; BP with the true kernel reaches it. The global MLP, the transformer and
-  the window CNN are trained on noisy sequences by denoising score matching; the neural kernel is learned by EM from noisy
+  $L_{\rm Bayes}=0.2646$ is the lowest possible; BP with the true kernel reaches it. The global MLP, the transformer and the window CNN are trained by denoising score matching; the neural kernel is learned by EM from noisy
   sequences and used inside BP. Dashed: the best linear denoiser.}
   \label{fig:summary}
   % src: tools/paper_figs/figs_v5.py::fig_summary_v5. (a) exact draw, Phi4Chain(T=0.3, h=1), seed 20261118, noise seed 7;
