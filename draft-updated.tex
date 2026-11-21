@@ -87,12 +87,25 @@ training sequences and 22 to 69 with 32{,}768.
 \begin{figure*}[t]
   \centering
   \includegraphics{fig_summary}
-  \caption{(a) A sequence of $d=32$ sites from the stochastic Allen--Cahn field, a first-order Markov chain, noised
-  along the diffusion. (b) The posterior of the clean sequence $\mathbf a$ given the noisy one $\mathbf x$ is a chain:
-  belief propagation, one forward and one backward sweep, is exact for any kernel $K$. Below, the kernel learned by EM
-  from 2{,}048 noisy sequences: the next value jumps between the two wells of the field. (c) One sequence at $t=0.3$
-  denoised by BP with the learned kernel, and by the best linear denoiser. (d) DSM loss on test sequences against the
-  number of training sequences; the solid line is the Bayes loss, reached by BP with the true kernel.}
+  \caption{Summary. (a) One sequence $\mathbf a$ of $d=32$ sites from the stochastic Allen--Cahn field, a first-order
+  Markov chain, at three noise times: $\mathbf x_t=e^{-t}\mathbf a+\sqrt{\Delta_t}\,\boldsymbol\xi$ with
+  $\Delta_t=1-e^{-2t}$ and $\boldsymbol\xi$ standard Gaussian (the same $\boldsymbol\xi$ at each $t$). (b) Top: the factor
+  graph of the posterior of $\mathbf a$ given $\mathbf x$. Clean sites $a_k$ are white, noisy sites $x_k$ grey; black
+  squares are the kernel factors $K(a_{k+1}\mid a_k)$ and the noise factors
+  $\ell_t(x_k\mid a_k)=\mathcal N(x_k;e^{-t}a_k,\Delta_t)$. It is a chain, so belief propagation (BP), one forward sweep
+  ($f_k$) and one backward sweep ($b_k$), is exact for any kernel $K$ and gives the posterior mean
+  $\mathbb E[\mathbf a\mid\mathbf x]$, hence the score
+  $\mathbf S_t(\mathbf x)=(e^{-t}\,\mathbb E[\mathbf a\mid\mathbf x]-\mathbf x)/\Delta_t$. Bottom: the neural kernel learned
+  by expectation--maximisation (EM) from $n=2{,}048$ noisy sequences, as the density of $a_{k+1}$ given $a_k$ (each column
+  scaled to its maximum): the next value jumps between the two wells of the field. (c) One sequence at $t=0.3$: the clean
+  $\mathbf a$, the noisy $e^{t}\mathbf x$, the posterior mean computed by BP with the learned kernel, and the best linear
+  denoiser $\mathbf A_t\mathbf x$ with $\mathbf A_t=e^{-t}\boldsymbol\Sigma_0\boldsymbol\Sigma_t^{-1}$,
+  $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the
+  clean sequences. (d) Excess denoising score matching loss $L_{\rm DSM}-L_{\rm Bayes}$ on test sequences (mean over twelve
+  noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over seeds. The Bayes loss
+  $L_{\rm Bayes}=0.2646$ is the lowest possible; BP with the true kernel reaches it. The global MLP, the transformer and
+  the window CNN are trained on noisy sequences by denoising score matching; the neural kernel is learned by EM from noisy
+  sequences and used inside BP. Dashed: the best linear denoiser.}
   \label{fig:summary}
   % src: tools/paper_figs/figs_v5.py::fig_summary_v5. (a) exact draw, Phi4Chain(T=0.3, h=1), seed 20261118, noise seed 7;
   % (b, c) E55 em_energy n = 2048 seed 0 (theta), grid and best linear from E58's context; (d) outputs/E89/dsm.csv.
@@ -115,7 +128,7 @@ largely unexplained. While it now appears that the ability of networks to avoid 
 memorization being the optimum of the training loss \cite{gu2023memorization}---is largely related to some dynamical
 regularization from gradient descent training, related to the simplicity bias observed across machine learning
 \cite{bonnaire2025memorize,favero2025bigger}, when and how networks manage to generalize well is not clear
-\pending{[Marion opinion paper]}. As generalization must amount to extracting some underlying structure in data, much
+\cite{marion2026understanding}. As generalization must amount to extracting some underlying structure in data, much
 effort is being dedicated to understanding how hidden structure, such as a latent tree model
 \cite{sclocchi2025phase,garnierbrun2024transformers,mei2024unets}, as well as structure in the data support between
 different modes \cite{biroli2023generative,biroli2024dynamical,achilli2026speciation,garnierbrun2026foam}, is learned by
