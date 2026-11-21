@@ -57,7 +57,7 @@ training sequences and 22 to 69 with 32{,}768.
 % src: E89 (DSM rescoring of the frozen runs): Laplace per-seed median ratios over n = 32..2048, E56 energy (EM) vs E58
 % window 3.3-37.5, vs E87 transformer 5.2-12.1, BiGRU 3.5-11.2 (all seeds win). Field, E55 energy_em, per-seed median
 % ratios, 8/8 seeds win: n = 2048 window 12.8, transformer 5.4, BiGRU 5.2 (MLP 100); n = 32768 window 69.0,
-% transformer 23.6, BiGRU 22.4 (MLP 464); E58 clean kernel vs window 189 at 2048.
+% transformer 23.6, BiGRU 22.4 (MLP 464); E58 clean kernel vs window 211 at 2048 (with the E91 refits).
 \end{abstract}
 
 \ifshowreview
@@ -77,6 +77,8 @@ training sequences and 22 to 69 with 32{,}768.
 \item New results: networks at their best (\cref{sec:results}), a tree with hidden nodes (\cref{sec:tree-hidden}).
 \item New (21 Nov): do the generated samples copy the training sequences? No kernel ever does; networks trained to
   the end on 32 sequences do, none at their selected checkpoint (\cref{sec:memorization}, \cref{app:memorization-gen}).
+\item New (21 Nov): the 29 clean-data fits of the neural kernel whose step size had collapsed are replaced by their
+  refits, and EM at $n=32{,}768$ is in \cref{fig:results}a (\cref{app:em}).
 \item Calcium imaging: synthetic and real (Spikefinder) runs submitted, \pending{results pending}.
 \item Still in the relative score error (not yet converted, appendix only): \cref{tab:field}, \cref{fig:steps,fig:wall}.
 \end{itemize}}}
@@ -328,19 +330,20 @@ clean sequences with fresh noise at every step (\cref{fig:routes}), with hyperpa
   \centering
   \includegraphics{fig_results}
   \caption{DSM loss above the Bayes loss against the number of training sequences $n$, medians over seeds. (a) Laplace
-  chain, 16 seeds (8 for EM at $n=8192$ and for the transformer and BiGRU). (b) Allen--Cahn field at $\Theta=0.3$
+  chain, 16 seeds (8 for EM at $n\ge8192$ and for the transformer and BiGRU). (b) Allen--Cahn field at $\Theta=0.3$
   (\cref{sec:allen-cahn}), 8 seeds. Filled: kernels learned by EM from noisy sequences, used inside BP. Open, dashed: the
   neural kernel fitted on the clean sequences; arrow: the price of learning from noisy data. Networks: DSM on the clean
   sequences. Dotted: the best linear denoiser.}
   \label{fig:results}
   % src: tools/paper_figs/figs_v5.py::fig_results_dsm on outputs/E89/dsm.csv: (a) E02a+E86 mixture rescored from theta,
   % E56+E86 energy, E58 energy_h16/mlp/window/lmmse, E87 transformer/bigru; (b) E33 mixture rescored, E55 (per-level
-  % relative errors x E58 field sq_ref), E58, E85.
+  % relative errors x E58 field sq_ref), E58, E85. With the 29 E91 refits in place of the stalled E58 clean fits
+  % (outputs/E91_dsm) and E86 at n=32768 (outputs/E86_dsm, E89's formula and checks): figs_v5.py::_dsm, 21 Nov 2026.
 \end{figure*}
 
 \paragraph{Results on the Laplace chain.}
 \label{sec:results}
-Each model is trained on $n$ sequences, from 32 to 2{,}048 with 16 seeds; EM was also run on 8{,}192 noisy sequences,
+Each model is trained on $n$ sequences, from 32 to 2{,}048 with 16 seeds; EM was also run on 8{,}192 and 32{,}768 noisy sequences,
 and with clean data $n$ goes up to 32{,}768. EM sees one noisy copy of each training sequence, at one of the twelve
 levels; the networks see the clean sequences and draw fresh noise at every step. Every model keeps the checkpoint with
 the lowest error on separate validation sequences, which matters for the networks, as they memorize small training
@@ -351,25 +354,26 @@ learned from noisy sequences has an excess loss 3 to 40 times smaller than the w
 than the MLP, in every seed (median ratios from $n=32$ to 2{,}048). The CNN barely improves with more data and stays
 near the best linear denoiser: this is the locality limit of \cref{sec:gaussian}. The transformer and the BiGRU keep
 improving, but are still 12 and 11 times above the neural kernel at $n=2048$. The mixture, with 25 parameters,
-is the best model up to $n=512$, 1.2 to 1.5 times below the neural kernel, which catches up at $n=2048$; EM on 8{,}192
-noisy sequences improves both, though it is still limited by its iteration budget there (\cref{app:em}). Fitted on clean sequences, the neural kernel is another 5 to 9
+is the best model up to $n=512$, 1.2 to 1.5 times below the neural kernel, which catches up at $n=2048$; EM on 8{,}192 and 32{,}768
+noisy sequences improves both, though the mixture is still limited by its iteration budget there, and the neural
+kernel at 8{,}192 (\cref{app:em}). Fitted on clean sequences, the neural kernel is another 5 to 9
 times better---the gap between the open and filled markers (arrow) is the price of learning from noisy data---and from
 128 clean sequences it is 25 times below the window CNN trained on 32{,}768.
 % mixture vs neural kernel (E02a/E86 rescored vs E56/E86, per-seed median ratios nk/mix): 1.18, 1.54, 1.40, 0.96, 0.86.
 % src: E89 dsm.csv, per-seed ratios (median, range): E56 energy vs E58 window 3.3 (n=32) ... 37.5 (2048), 16/16 every n;
 % vs E58 mlp 24.5 ... 129.7, 16/16; vs E87 transformer 5.2 ... 12.1 (8/8), bigru 3.5 ... 11.2 (8/8); EM/clean (E56/E58
-% energy_h16) 6.1, 5.0, 9.3, 8.1; clean n=128 2.16e-4 vs window n=32768 5.45e-3 (x25).
+% energy_h16) 6.1, 5.0, 9.3, 8.7 (with the E91 refits; 8.1 before); clean n=128 2.16e-4 vs window n=32768 5.45e-3 (x25).
 
 \paragraph{Networks at their best.} A large network should close the gap given enough data. We retrained the best
 architectures with a learning-rate schedule and wider layers on up to $131{,}072$ clean sequences (\cref{app:networks}).
 The best of them, a BiGRU, is three times better than with our standard recipe at $n=2048$, but still 3.5 times
 above the neural kernel learned by EM from the same number of noisy sequences; it needs 16 times more sequences, all
-clean, to reach it, and at $n=131{,}072$ it is still four times above the neural kernel fitted on 2{,}048 clean
+clean, to reach it, and at $n=131{,}072$ it is still 4.5 times above the neural kernel fitted on 2{,}048 clean
 sequences (same seeds). The kernels are
 also much smaller (\cref{fig:params}).
 % src: E80 (frozen 20 Nov 2026), E89 medians, seeds 0-3: bigru_h32 4.34e-4 at 2048 (E87 bigru 1.35e-3), bigru_h32
 % 1.92e-4 at 8192, bigru_h128 1.19e-4 at 32768, 8.4e-5 at 131072; seeds 0-3: E56 energy EM at 2048 1.25e-4, E02a mixture
-% 1.05e-4, E58 energy_h16 1.91e-5. read_e80 P1-P4, P6
+% 1.05e-4, E58 energy_h16 1.87e-5 (E91 refits; 1.91e-5 before), bigru_h128 at 131072 / clean = 4.50. read_e80 P1-P4, P6
 % confirmed, P5 falsified (the window plateau was partly training).
 
 \paragraph{Memorization.}
@@ -450,10 +454,11 @@ current value and its shape never changes, so its best member is close to a Gaus
 the best linear denoiser, from noisy and from clean data alike. The neural kernel has no such constraint and learns the
 state-dependent law (\cref{fig:summary}b). From 2{,}048 noisy sequences its excess loss is 13 times below the window CNN,
 100 times below the MLP and 5 times below the transformer and the BiGRU, in every seed; at $n=32{,}768$ the two sequence
-models are still 22 to 24 times above it. Fitted on clean sequences, the neural kernel is 190 times below the CNN at
+models are still 22 to 24 times above it. Fitted on clean sequences, the neural kernel is 210 times below the CNN at
 $n=2048$ and reaches the Bayes loss to within $2\times10^{-6}$ at $n=32{,}768$ (\cref{fig:summary}d).
 % src: E89: E33 mixture rescored ~ E58 lmmse; E55 em_energy vs E58 window 12.8 (8/8), mlp 100 (8/8), E85 transformer
-% 5.4, bigru 5.2 (8/8) at 2048; at 32768 23.6 and 22.4; E58 energy_h16 vs window 189 at 2048; energy_h16 1.74e-6 at 32768.
+% 5.4, bigru 5.2 (8/8) at 2048; at 32768 23.6 and 22.4; E58 energy_h16 vs window 211 at 2048 (8/8; 189 before the E91
+% refits); energy_h16 1.64e-6 at 32768 (1.74e-6 before).
 
 \Cref{app:field} adds three higher temperatures and more kernels: every kernel whose shape can change with the current
 value beats the best network trained on the same noisy data, and a kernel with the form of the lattice energy, with five
@@ -727,7 +732,7 @@ loss.
 % free/oracle max em_bp 1.7%, spline 6.9%, energy 6.9%, networks <= 3.4%
 
 \paragraph{Training-set sizes.} On the Laplace chain, EM from noisy sequences was run for $n$ from 32 to 2{,}048 with
-16 seeds and at $n=8{,}192$ with 8 seeds ($n=32{,}768$ is running), while the clean-data kernel and the networks go up
+16 seeds and at $n=8{,}192$ and $32{,}768$ with 8 seeds, while the clean-data kernel and the networks go up
 to 32{,}768. The larger sizes were added later, to ask whether the
 networks catch up with the kernel given much more data. From clean data
 the transition counts $\Xi$ are computed once, in a few milliseconds, and an M-step then costs the same at every $n$.
@@ -736,14 +741,21 @@ $n=2{,}048$ for the mixture (\cref{app:compute}), about a minute at $n=32{,}768$
 seed over the 1{,}200 to 2{,}400 iterations. At $n=8{,}192$ EM had the same iteration budget as at $n=2{,}048$, and it
 was not enough: the mixture was still improving on the validation sequences at its last checkpoint (1{,}200 iterations)
 in 7 of 8 seeds, and the neural kernel ran out of its 2{,}400 iterations in 4 of 8. The $n=8{,}192$ points of
-\cref{fig:results}a are therefore what EM reaches with that budget, not with that much data. Paired by seed, the
-mixture at $n=8{,}192$ is below its own loss at $n=2{,}048$ in 5 of 8 seeds and the neural kernel in 6 of 8; the price
-of noisy data, the ratio of the EM neural kernel to the clean-data one, is 14 at $n=8{,}192$ against 8 at $n=2{,}048$
-(medians). A rerun with four times the iteration budget is \pending{running}.
+\cref{fig:results}a are therefore what EM reaches with that budget, not with that much data. At $n=32{,}768$ the mixture
+was again still improving at its last checkpoint, in all 8 seeds, while the neural kernel met its stopping rule in every
+seed, after 786 to 2{,}377 iterations. Paired by seed, the mixture at $n=8{,}192$ is below its own loss at $n=2{,}048$ in
+5 of 8 seeds and the neural kernel in 6 of 8, and at $n=32{,}768$ both are below their loss at $n=8{,}192$, in 7 and 8
+of 8 seeds; at $n=32{,}768$ the two kernels are level (median ratio 0.94). The price of noisy data, the ratio of the EM
+neural kernel to the clean-data one, is 9 at $n=2{,}048$, 16 at $n=8{,}192$ and 10 at $n=32{,}768$ (medians of the
+per-seed ratios). A rerun at $n=8{,}192$ with four times the iteration budget is \pending{running}.
 % src: E86 (frozen 19 Nov 2026, outputs/hpc_E86_n8192): capacity.csv at_cap 7/8 with val_curve still falling at 1200;
 % kernels.csv stop_reason censored 4/8 (n_iters 2401); read_e86 P1 8192<2048 5/8; medians energy 0.0171, energy_h16
 % 0.0045 (seed mean ratio 0.95 because E58's clean fit at n=8192 seed 1 stalled at 0.1228: registered P2 FALSIFIED as
-% worded). n=32768 job 773976 still running.
+% worded). n=32768 (frozen 21 Nov, outputs/hpc_E86_n32768; DSM by tools/core/e86_dsm.py, C2 8.0e-10): read_e86 P1
+% FALSIFIED (8192<2048 5/8, 32768<8192 7/8), P2 FALSIFIED as worded on the original E58 rows (8192 0.95, 32768 3.62),
+% P3 CONFIRMED. DSM with the E91 refits: mixture 32768<8192 7/8, energy 8/8; mixture at_cap 8/8 (checkpoint 1200);
+% energy stop_reason converged 8/8 (786-2377 iters); medians 32768 mix 2.53e-5, energy 2.71e-5, nk/mix 0.94 (mix<nk
+% 3/8); EM/clean median per-seed ratio 8.7 / 15.8 / 10.4 at 2048 / 8192 / 32768.
 % src: E58 registry (sizes 32..32768 added 31 Oct for the clean arms; clean Xi 5 ms at N = 2048; M-step does not depend
 % on N); E63 timing 3.4 s / 2.5 s per EM iteration at N = 2048 -> x16 = 54 s / 40 s; x1200 / x2400 = 18 h / 27 h
 
@@ -754,6 +766,17 @@ the other log-linear families, $Q$ is concave and its gradient is the observed m
 function, so a few gradient steps per iteration are enough. For the neural kernel, each M-step takes ten Adam steps on
 $Q$, differentiating only through the network and its normalisation on the grid, and halves the step size whenever $Q$
 does not increase.
+
+\paragraph{Clean-data fits.} From clean sequences the neural kernel is fitted by the same Adam steps and the same step
+halving, on the likelihood itself. In 29 of its 144 clean fits on the two data sets of \cref{fig:results}, the halving
+drove the step size below $10^{-6}$, which freezes the fit; five of them had stopped near the loss of the best linear
+denoiser. We refitted these 29 from the same initialisation, with the same data and budget, restarting Adam after every
+rejected step, and report the refits. None of them stalls again, and they lower the medians of \cref{fig:results} by at
+most 23\%.
+% src: E91 (registered 20 Nov 2026; stalled list outputs/E91_list/stalled.csv written before submission; frozen
+% outputs/hpc_E91_r0 21 Nov): read_e91 G1 pass, P1-P3 confirmed, no restart needed. DSM: tools/core/e91_dsm.py (same
+% bundles: sq_ref equal to E58's, C2 4e-14). Truly stuck: laplace s1, s8 at 8192; field s2 at 8192, s6, s7 at 512.
+% Median changes: laplace 8192 -23.3%, 32768 -15.2%; field 512 -19.9%, 2048 -8.7%, 8192 -4.3%, 32768 -5.9%; others 0.
 
 \section{Training time}
 \label{app:compute}
