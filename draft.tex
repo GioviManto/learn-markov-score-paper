@@ -244,20 +244,21 @@ error, which we control by refining the grid and enlarging the domain. We first 
 exact score is known from the precision matrix: grid BP agrees with it to floating-point rounding for every $t\geq0.05$,
 our smallest noise level, already with $101$ points. But a smooth density needs few points and a spiky one more, so in
 practice we use $401$ points. On the Laplace chain, whose score is close to a step at small noise, the DSM loss of grid BP
-on $401$ points differs from that on $801$ points by about $10^{-11}$ (\cref{fig:grid-vs-gaussian}). In the rest of the
+on $401$ points differs from that on $801$ points, our numerically exact reference, by less than $10^{-10}$ at every noise
+level (\cref{fig:grid-vs-gaussian}). In the rest of the
 paper the exact score is grid BP with the true kernel on $401$ points.
 
 \begin{figure}[t]
   \centering
-  \includegraphics{fig_grid_check}
-  \caption{Grid BP against Gaussian messages on the Laplace chain ($\alpha=0.85$, $d=32$, true kernel): DSM loss,
-  averaged over the twelve noise levels, on $2{,}000$ sequences. The reference is grid BP on $801$ points, whose loss is
-  the Bayes loss (solid line). Squares: grid BP with fewer points, which is on the reference from $101$ points; the
-  experiments use $401$. Dashed: Gaussian messages, which update only the mean and the covariance and give the best
-  linear denoiser; the arrow is the cost of the approximation.
+  \includegraphics{fig_closure_cost}
+  \caption{Grid BP against Gaussian messages on the Laplace chain ($\alpha=0.85$, $d=32$, true kernel): DSM loss above
+  the Bayes loss at each noise level, median over $2{,}000$ sequences with the 10--90\% range shaded. The reference is
+  grid BP on $801$ points, a numerically exact stand-in for the true posterior mean. Compared with it: grid BP on $401$
+  points, as used in every experiment, and Gaussian messages, which update only the mean and the covariance and give the
+  best linear denoiser. The arrow is the cost of the approximation.
   \jgb{How is the grid BP compared in terms of relative score error? Isn't it the baseline against which relative is defined?}}
   \label{fig:grid-vs-gaussian}
-  % src: tools/paper_figs/figs_v5.py::fig_grid_check (reports/paper-figures/data/closure_gridsweep_2000.csv); Bayes 0.2725, Gaussian 0.2798
+  % src: tools/paper_figs/figs_v5.py::fig_closure_cost (reports/paper-figures/data/closure_dsm_2000.csv)
 \end{figure}
 
 \paragraph{Validation and the Gaussian approximation.}
@@ -271,10 +272,9 @@ is exact for the Gaussian chain, because Gaussian kernels and noise terms stay G
 of BP, but not for the Laplace chain: Gaussian messages throw away what is non-Gaussian and give back the score of the
 Gaussian chain with the same covariance, which is linear in $\mathbf x$ and cannot see the peak of the Laplace law. This
 matters most at small noise, where the Laplace score is close to a step that flips sign at zero.
-\Cref{fig:grid-vs-gaussian} shows the cost: averaged over the twelve noise levels, Gaussian messages lose $7\times10^{-3}$ in
-DSM loss ($0.280$ against the Bayes loss $0.2725$), against $10^{-11}$ for grid BP on $401$ points. The loss is concentrated
-at small noise and vanishes at large $t$, where both scores become that of isotropic noise.
-% src: closure_gridsweep_2000.csv: mean over the twelve levels, Gaussian excess 7.28e-3, grid 401 excess 6.6e-12, Bayes 0.2725
+\Cref{fig:grid-vs-gaussian} shows the cost: at $t=0.05$ the excess DSM loss of Gaussian messages is $2\times10^{-2}$, nine
+orders of magnitude above grid BP, and the gap closes at large $t$, where both scores become that of isotropic noise.
+% src: closure_dsm_2000.csv: t=0.05 lin_med 1.96e-2, grid_med 4.3e-11
 This is also different from approximate message passing (AMP) and Thouless--Anderson--Palmer (TAP) methods
 \cite{thouless1977solution,mezard1986sk,mezard1987spin,kabashima2003cdma,donoho2009message,krzakala2012statistical,bolthausen2014iterative}.
 Those are built for dense, high-dimensional systems, where many weak interactions justify Gaussian messages with an
