@@ -171,8 +171,8 @@ $\widehat{\boldsymbol\xi}=-\sqrt{\Delta_t}\,\widehat{\mathbf S}_t(\mathbf x)$. I
 \end{equation}
 is the loss diffusion networks are trained on. We average it over twelve noise levels $t$ log-spaced between $0.05$ and $3$ and evaluate it on $2{,}048$ test
 sequences. No denoiser does better than the exact posterior mean, so $L_{\mathrm{DSM}}$ has a floor, the Bayes loss
-$L_{\mathrm{Bayes}}$. On synthetic data we know the true kernel, and BP computes the exact posterior mean
-(\cref{sec:locality}), so we report the excess $L_{\mathrm{DSM}}-L_{\mathrm{Bayes}}$, which is zero for the exact score;
+$L_{\mathrm{Bayes}}$. On synthetic data we know the true kernel, and BP computes the exact posterior mean up to the
+discretisation error of its grid, which we show to be below $10^{-10}$ (\cref{sec:locality}), so we report the excess $L_{\mathrm{DSM}}-L_{\mathrm{Bayes}}$, which is zero for the exact score;
 on real data we report $L_{\mathrm{DSM}}$ itself.
 
 \section{Exploiting Markov locality in the exact denoiser}
@@ -660,7 +660,8 @@ grid BP with the true kernel on $401$ points. Every run stores, per level, the s
 $(\widehat S_{t,k}-S_{t,k})^2$ and of $S_{t,k}^2$ over the test set, and \cref{eq:dsm-decomposition} then gives the DSM
 loss, its Bayes value and the excess exactly, without new training. On the Laplace test set of seed 0 the Bayes loss of
 \cref{eq:dsm-decomposition}, $0.2743$, agrees with the empirical loss of the true-kernel BP on one noise draw, $0.2724$,
-to the sampling error of that draw. Runs that kept only an error pooled over levels (the mixture by EM) were rescored
+to the sampling error of that draw. On the Gaussian chain the Bayes loss is known in closed form, $1-\frac{\Delta_t}{d}\operatorname{tr}\boldsymbol\Sigma_t^{-1}$,
+and grid BP reproduces it to rounding ($10^{-15}$) at every noise level from $101$ points on. Runs that kept only an error pooled over levels (the mixture by EM) were rescored
 from their stored kernels on their regenerated test sets, which reproduces their stored errors to $2\times10^{-9}$. On real
 data the true kernel is unknown, so only the DSM loss itself can be reported. The best linear denoiser, dotted in the
 figures, is the linear function of $\mathbf x$ with the lowest DSM loss, computed from the exact covariance of the chain.
