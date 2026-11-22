@@ -9,7 +9,7 @@
   \node[var] (ak) at (2.3,0) {$a_k$};
   \node[var] (ak1) at (4.0,0) {$a_{k+1}$};
   \node (d2) at (5.15,0) {$\cdots$};
-  \node[var] (aL) at (6.3,0) {$a_L$};
+  \node[var] (aL) at (6.3,0) {$a_d$};
   \node[fac] (m0) at (-0.8,0) {};
   \draw (m0) -- (a1);
   \node[lab,above=0.8mm of m0] {$\mu$};
@@ -18,7 +18,7 @@
     \draw (\u) -- (\n) -- (\v);
   }
   \node[lab,above=0.8mm of kc] {$K$};
-  \foreach \i/\n in {a1/1,ak/k,ak1/{k+1},aL/L} {
+  \foreach \i/\n in {a1/1,ak/k,ak1/{k+1},aL/d} {
     \node[fac] (o\i) at ($(\i)+(0,-0.9)$) {};
     \node[obs] (x\i) at ($(\i)+(0,-1.8)$) {$x_{\n}$};
     \draw (\i) -- (o\i) -- (x\i);
