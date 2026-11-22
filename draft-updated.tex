@@ -102,8 +102,8 @@ training sequences and 22 to 69 with 32{,}768.
   denoiser $\mathbf A_t\mathbf x$ with $\mathbf A_t=e^{-t}\boldsymbol\Sigma_0\boldsymbol\Sigma_t^{-1}$,
   $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the
   clean sequences. (d) Denoising score matching loss $L_{\rm DSM}$ on test sequences (mean over twelve noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over seeds. Solid line: the Bayes loss
-  $L_{\rm Bayes}=0.2646$, the loss of the exact score (computed by BP with the true kernel), which no denoiser can go below. Dashed: the best linear denoiser. The global MLP, the transformer and the window CNN are trained by denoising score
-  matching; the neural kernel is learned by EM from noisy sequences and used inside BP. The global MLP is above the axis for $n\le512$ ($0.394$, $0.349$, $0.310$).}
+  $L_{\rm Bayes}$, the loss of the exact score (computed by BP with the true kernel), which no denoiser can go below. Dashed: the best linear denoiser. The global MLP, the transformer and the window CNN are trained by denoising score
+  matching; the neural kernel is learned by EM from noisy sequences and used inside BP. The global MLP is above the axis for $n\le512$.}
   \label{fig:summary}
   % src: tools/paper_figs/figs_v5.py::fig_summary_v5. (a) exact draw, Phi4Chain(T=0.3, h=1), seed 20261118, noise seed 7;
   % (b, c) E55 em_energy n = 2048 seed 0 (theta), grid and best linear from E58's context; (d) outputs/E89/dsm.csv.
