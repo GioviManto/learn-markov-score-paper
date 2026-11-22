@@ -199,9 +199,8 @@ still Gaussian, with covariance $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+
 linear, $\mathbf S_t(\mathbf x)=-\mathbf Q_t\mathbf x$ with $\mathbf Q_t=\boldsymbol\Sigma_t^{-1}$. But while $\mathbf Q_0$ is
 tridiagonal, $\mathbf Q_t$ is dense for $t>0$ (\cref{fig:locality}): diffusion turns a locally structured chain into a
 distribution whose score is not local, even though it stays Gaussian. The effect is strongest at an intermediate noise
-level, $t^{*}\simeq0.075$ for $\alpha=0.85$, and fades at large $t$, where the noise dominates. Locality therefore
+level, and fades at large $t$, where the noise dominates. Locality therefore
 cannot simply be imposed on the denoiser.
-% src: t* = 0.0753, fig_locality / fig_locality_curve; thesis tools/fig_ch10.py::windowed_oracle([1]) = 0.2023 (alpha=0.85, L=32, twelve levels)
 
 \begin{figure}[t]
   \centering
@@ -230,8 +229,7 @@ $x_{k+1},\ldots,x_d$ say about it, and one sweep in each direction gives them al
 \end{align}
 started from $f_1=\mu\,\ell_t(x_1\mid\cdot)$ and $b_d=1$. The posterior of site $k$ is proportional to $f_kb_k$, and
 its mean gives the score through \cref{eq:tweedie}. Each sweep visits every site once, so exact denoising takes a number
-of message updates linear in the sequence length, $O(d)$, whereas integrating out the other $d-1$ continuous variables
-directly is exponential in $d$. The noise level enters only through $\ell_t$, so one kernel gives the exact score at every
+of message updates linear in the sequence length, $O(d)$. The noise level enters only through $\ell_t$, so one kernel gives the exact score at every
 $t$, with no assumption of Gaussianity or linearity. The same exact inference on trees underlies the hierarchical models
 of \cite{garnierbrun2024transformers}, where transformers trained on such data learn to approximate BP; a Markov chain
 is the simplest tree.
