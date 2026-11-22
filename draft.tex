@@ -164,9 +164,12 @@ and the noisy score is expressed through the posterior mean (Tweedie's formula
 \paragraph{Measuring a denoiser.}
 A score estimate $\widehat{\mathbf S}_t$ predicts the added noise as
 $\widehat{\boldsymbol\xi}=-\sqrt{\Delta_t}\,\widehat{\mathbf S}_t(\mathbf x)$. Its denoising score matching (DSM) loss
-\cite{hyvarinen2005estimation,vincent2011connection,ho2020denoising} is
-$L_{\mathrm{DSM}}=\frac1d\,\mathbb E\,\|\boldsymbol\xi-\widehat{\boldsymbol\xi}\|^2$, the loss diffusion networks are
-trained on. We average it over twelve noise levels $t$ log-spaced between $0.05$ and $3$ and evaluate it on $2{,}048$ test
+\cite{hyvarinen2005estimation,vincent2011connection,ho2020denoising},
+\begin{equation}
+    L_{\mathrm{DSM}}=\frac1d\,\mathbb E_{t,\mathbf a,\boldsymbol\xi}\big\|\boldsymbol\xi-\widehat{\boldsymbol\xi}\big\|^2,
+    \label{eq:dsm}
+\end{equation}
+is the loss diffusion networks are trained on. We average it over twelve noise levels $t$ log-spaced between $0.05$ and $3$ and evaluate it on $2{,}048$ test
 sequences. No denoiser does better than the exact posterior mean, so $L_{\mathrm{DSM}}$ has a floor, the Bayes loss
 $L_{\mathrm{Bayes}}$. On synthetic data we know the true kernel, and BP computes the exact posterior mean
 (\cref{sec:locality}), so we report the excess $L_{\mathrm{DSM}}-L_{\mathrm{Bayes}}$, which is zero for the exact score;
@@ -474,9 +477,10 @@ and a network $\boldsymbol{\epsilon}_\phi(\mathbf{x},t)$ is trained to predict t
 \end{equation}
 which gives the score estimate $\widehat{\mathbf{S}}_t(\mathbf{x})=-\boldsymbol{\epsilon}_\phi(\mathbf{x},t)/\sqrt{\Delta_t}$.
 
-We use a global MLP, which knows nothing about locality, and a window CNN, which only looks at nearby sites (26{,}016
-and 5{,}505 parameters). Both are trained on the clean sequences with fresh noise at every step (\cref{fig:routes}),
-with hyperparameters chosen on separate seeds (\cref{app:networks}, which also has four other architectures). The
+We use a global MLP, which knows nothing about locality, a window CNN, which only looks at nearby sites, and a
+transformer (26{,}016, 5{,}505 and 18{,}057 parameters). All are trained on the clean sequences with fresh noise at
+every step (\cref{fig:routes}), with hyperparameters chosen on separate seeds (\cref{app:networks}, which also has
+three other architectures). The
 comparison is between two approaches: learning a small transition law and letting BP do the inference, or learning the
 whole denoiser from examples. In the first the Markov structure is built into the model; in the second the network has
 to find it in the data.
@@ -488,40 +492,41 @@ to find it in the data.
 \begin{figure*}[t]
   \centering
   \includegraphics{fig_results}
-  \caption{Relative score error against the number of training sequences $N$. (a) Laplace chain, 16 seeds.
-  (b) Allen--Cahn field at $\Theta=0.3$ (\cref{sec:allen-cahn}), 8 seeds. Filled markers: kernels learned by EM from
-  noisy sequences and used inside BP, the mixture of 8 Gaussians and the neural kernel. Open markers, dashed: the neural
-  kernel fitted by maximum likelihood on the clean sequences. Global MLP and window CNN: denoising score matching on the
-  clean sequences. Dotted: the best linear denoiser. Medians over seeds; on the Laplace chain the EM runs stop at
-  $N=2048$ (\cref{app:em}).}
+  \caption{DSM loss above the Bayes loss against the number of training sequences $n$, medians over seeds. (a) Laplace
+  chain, 16 seeds (8 for EM at $n\ge8192$ and for the transformer, which was run up to $n=2048$). (b) Allen--Cahn field
+  at $\Theta=0.3$ (\cref{sec:allen-cahn}), 8 seeds. Filled markers: kernels learned by EM from noisy sequences and used
+  inside BP, the mixture of 8 Gaussians and the neural kernel. Open markers, dashed: the neural kernel fitted by
+  maximum likelihood on the clean sequences; the arrow is the price of learning from noisy data. Global MLP, window CNN
+  and transformer: denoising score matching on the clean sequences. Dotted: the best linear denoiser.}
   \label{fig:results}
-  % src: tools/paper_figs/figs_v2.py::fig_results. (a) E02a capacity.csv (em_bp, C=8), E56 kernels (energy), E58
-  % (energy_h16, mlp, window, lmmse; E58's gate G2 reproduces E03's networks at N <= 2048). (b) E33 via read_e60
-  % (em_mixture, raw_risk), E55 kernels (em_energy, selection=risk), E58 (energy_h16, mlp, window, lmmse); seeds 0-7.
+  % src: tools/paper_figs/figs_v5.py::fig_results_draft on outputs/E89/dsm.csv (with the E91 refits and E86): (a) E02a+E86
+  % mixture rescored from theta, E56+E86 energy, E58 energy_h16/mlp/window/lmmse, E87 transformer; (b) E33 mixture
+  % rescored, E55 em_energy, E58, E85 transformer. Medians over seeds.
 \end{figure*}
 
-We use the Laplace chain with $\alpha=0.85$ and $L=32$, and twelve noise levels between $t=0.05$ and $t=3$. Each model
-is trained on $N$ sequences, from 32 to 2{,}048 (up to 32{,}768 with clean data), with 16 seeds. EM sees one noisy copy
-of each training sequence, at one of the twelve levels; the networks see the clean sequences and draw fresh noise at
-every step. We measure the relative score error $\|\widehat{\mathbf S}-\mathbf
-S\|/\|\mathbf S\|$ on 2{,}048 test sequences, pooled over sites and all twelve levels (\cref{app:measures}), where $\mathbf S$ is the exact score from BP with the
-true kernel. Every model keeps the checkpoint with the lowest error on separate validation sequences.
+We use the Laplace chain with $\alpha=0.85$ and $d=32$, and twelve noise levels between $t=0.05$ and $t=3$. Each model
+is trained on $n$ sequences, from 32 to 2{,}048 with 16 seeds; EM was also run on 8{,}192 and 32{,}768 noisy sequences,
+and with clean data $n$ goes up to 32{,}768. EM sees one noisy copy of each training sequence, at one of the twelve
+levels; the networks see the clean sequences and draw fresh noise at every step. We measure the DSM loss
+(\cref{eq:dsm}) above its Bayes value on 2{,}048 test sequences, averaged over the twelve levels
+(\cref{app:measures}); the exact score comes from BP with the true kernel. Every model keeps the checkpoint with the
+lowest error on separate validation sequences.
 
-\Cref{fig:results}a shows the result. The mixture learned by EM, with 25 parameters, has the lowest error at every $N$,
-from $0.099$ with 32 sequences to $0.023$ with 2{,}048. The global MLP is 6 to 10 times worse and the window CNN 2 to 6
-times worse, in every seed. The CNN barely improves with more data and stays near $0.12$, not far from the best linear
-denoiser ($0.17$): this is the locality limit of \cref{sec:gaussian}. The Fourier kernel is close to the mixture, 1.1 to
-1.35 times its error. The neural kernel needs more data than the 25-parameter families, but it reaches the mixture with
-2{,}048 sequences ($0.024$ against $0.023$), and it beats both networks in every seed at every $N$.
-% src: E02a em_bp seed means 0.0989 ... 0.0231; per-seed mean ratios (E03, paired) MLP 5.79-9.85, window 2.07-5.58,
-% 16/16 every N; window 0.1181 at 2048; E58 lmmse 0.1672; E56 fourier/mixture 1.08-1.35; energy 0.0235 at 2048,
-% wins vs MLP and window 16/16 at every N
+\Cref{fig:results}a shows the result. Both kernels learned by EM are below every network at every $n$. The neural kernel
+learned from noisy sequences has an excess loss 3 to 40 times smaller than the window CNN and 25 to 130 times smaller
+than the global MLP, in every seed (median ratios from $n=32$ to 2{,}048), and 5 to 12 times smaller than the
+transformer. The CNN barely improves with more data and stays near the best linear denoiser: this is the locality limit
+of \cref{sec:gaussian}. The mixture, with 25 parameters, is the best model up to $n=512$, 1.2 to 1.5 times below the
+neural kernel, which catches up at $n=2048$.
+% src: E89 dsm.csv, per-seed ratios (median, range): E56 energy vs E58 window 3.3 (n=32) ... 37.5 (2048), 16/16 every n;
+% vs E58 mlp 24.5 ... 129.7, 16/16; vs E87 transformer 5.2 ... 12.1 (8/8). Mixture vs neural kernel (E02a/E86 rescored
+% vs E56/E86, per-seed median ratios nk/mix): 1.18, 1.54, 1.40, 0.96, 0.86.
 
-With clean sequences the neural kernel is fitted by maximum likelihood (open markers). It is then about three times
-more accurate than from noisy sequences, and from only 128 clean sequences it beats the window CNN trained on 32{,}768.
-(\cref{app:networks}).
-% src: E58 (read_e58): E56 energy / E58 energy_h16 per-seed ratio 2.77-3.50; energy_h16 0.0251 at N=128 vs window 0.1162
-% at N=32768; E66 (read_e66) P1: BP-DSM kernel below the best of six networks 16/16 at every N
+With clean sequences the neural kernel is fitted by maximum likelihood (open markers). It is then another 5 to 9 times
+better than from noisy sequences, which is the price of learning from noisy data (arrow), and from only 128 clean
+sequences it is 25 times below the window CNN trained on 32{,}768 (\cref{app:networks}).
+% src: E89 dsm.csv: EM/clean (E56/E58 energy_h16) 6.1, 5.0, 9.3, 8.7 (with the E91 refits); clean n=128 2.16e-4 vs
+% window n=32768 5.45e-3 (x25).
 
 \subsection{Step efficiency}
 \label{sec:steps}
@@ -568,18 +573,19 @@ with space-time white noise $\eta$ at temperature $\Theta$. On a lattice of spac
 which is exactly a nearest-neighbour chain, so everything above applies. What makes it harder than the Laplace chain is
 that the \emph{shape} of the next value's law depends on the current value: between the two wells it is broad, inside a
 well it is narrow and one-sided (\cref{app:field}). We use $\Theta=0.3$, where the field sits in one well or the other
-with sharp jumps between them, chains of $L=32$ sites and $h=1$, for which neighbouring sites have correlation $0.85$, as
+with sharp jumps between them, chains of $d=32$ sites and $h=1$, for which neighbouring sites have correlation $0.85$, as
 on the Laplace chain.
 % src: outputs/E32/cells.json (rho1 = 0.848 at T0.3_h1)
 
-\Cref{fig:results}b compares the same models. The mixture of \cref{sec:kernel-families} assumes the shift structure:
-its mean moves linearly with the current value and its shape never changes. Its best member is close to a Gaussian
-chain, and BP with a Gaussian kernel is linear, so it stays at the error of the best linear denoiser ($0.270$ against
-$0.269$ with 2{,}048 sequences), from noisy and from clean data alike. The neural kernel has no such constraint and
-learns the state-dependent law. From 2{,}048 noisy sequences its error is $0.033$, 2.6 times below the window CNN and
-7.6 times below the MLP; from clean sequences it is ten times below the CNN. 
-% src: E33 em_mixture raw 0.2705 (seeds 0-7), E58 mixture_clean 0.2693, lmmse 0.2692; E55 em_energy 0.0328; per-seed
-% mean ratios window/energy 2.57, MLP/energy 7.63 (8/8 at N=2048, 3/8 at N=32); E58 energy_h16 vs window median ratio 10.7
+\Cref{fig:results}b compares the same models. The mixture of \cref{sec:kernel-families} assumes the shift structure: its
+mean moves linearly with the current value and its shape never changes. Its best member is close to a Gaussian chain,
+and BP with a Gaussian kernel is linear, so it stays at the loss of the best linear denoiser, from noisy and from clean
+data alike. The neural kernel has no such constraint and learns the state-dependent law (\cref{fig:summary}b). From
+2{,}048 noisy sequences its excess loss is 13 times below the window CNN, 100 times below the global MLP and 5 times
+below the transformer, in every seed; at $n=32{,}768$ the transformer is still 24 times above it. Fitted on clean
+sequences, the neural kernel is 210 times below the CNN at $n=2048$.
+% src: E89: E33 mixture rescored ~ E58 lmmse; E55 em_energy vs E58 window 12.8 (8/8), mlp 100 (8/8), E85 transformer
+% 5.4 (8/8) at 2048; at 32768 transformer 23.6; E58 energy_h16 vs window 211 at 2048 (8/8).
 
 \Cref{app:field} adds three higher temperatures and more kernels: every kernel whose shape can change with the current
 value beats the best network trained on the same noisy data, and a kernel with the form of the lattice energy, with five
@@ -627,54 +633,66 @@ synthetic sequences and a simulated physical field with known ground truth. We s
 \section{How the figures are measured}
 \label{app:measures}
 
-\paragraph{Relative score error.} Every error in the paper compares an estimated score $\widehat{\mathbf S}_t$ with
-the exact score $\mathbf S_t$, computed by grid BP with the true kernel. The test set has $n$ sequences
-$\mathbf x^{(1)},\ldots,\mathbf x^{(n)}$ of length $L$ at each of the twelve noise levels $t\in\mathcal T$, log-spaced
-between $0.05$ and $3$. We add up the squared errors over all sequences, sites and levels before dividing:
+\paragraph{DSM loss and Bayes loss.} The test set has $2{,}048$ sequences of length $d=32$ at each of the twelve noise
+levels $t\in\mathcal T$, log-spaced between $0.05$ and $3$, the same for every model. A score estimate predicts the added
+noise as $\widehat{\boldsymbol\xi}=-\sqrt{\Delta_t}\,\widehat{\mathbf S}_t(\mathbf x)$, and its DSM loss is
+\cref{eq:dsm}. Given $\mathbf x$, the best possible prediction of the noise is its posterior mean,
+$\mathbb E[\boldsymbol\xi\mid\mathbf x]=-\sqrt{\Delta_t}\,\mathbf S_t(\mathbf x)$ (Tweedie's formula, \cref{eq:tweedie}),
+and its error cannot be removed, because $\mathbf x$ does not say which part of it is noise. Writing
+$\boldsymbol\xi-\widehat{\boldsymbol\xi}=(\boldsymbol\xi-\mathbb E[\boldsymbol\xi\mid\mathbf x])
++(\mathbb E[\boldsymbol\xi\mid\mathbf x]-\widehat{\boldsymbol\xi})$, the cross term has mean zero and $\mathbb E\,\xi_k^2=1$,
+so at each level
 \begin{equation}
-  \mathcal E
-  =\left(
-  \frac{\sum_{t\in\mathcal T}\sum_{j=1}^{n}\sum_{k=1}^{L}
-        \big(\widehat S_{t,k}(\mathbf x^{(j)})-S_{t,k}(\mathbf x^{(j)})\big)^2}
-       {\sum_{t\in\mathcal T}\sum_{j=1}^{n}\sum_{k=1}^{L}
-        S_{t,k}(\mathbf x^{(j)})^2}
-  \right)^{1/2}.
-  \label{eq:rel-error}
+  \frac1d\,\mathbb E\|\boldsymbol\xi-\widehat{\boldsymbol\xi}\|^2
+  =\underbrace{1-\frac{\Delta_t}{d}\,\mathbb E\|\mathbf S_t\|^2}_{\text{Bayes loss}}
+  +\underbrace{\frac{\Delta_t}{d}\,\mathbb E\|\widehat{\mathbf S}_t-\mathbf S_t\|^2}_{\text{excess}} .
+  \label{eq:dsm-decomposition}
 \end{equation}
-This is the root-mean-square error of the score divided by the root-mean-square size of the score. It is $0$ for the
-exact score and $1$ for the useless estimate $\widehat{\mathbf S}=\mathbf 0$, and it does not depend on the units of
-$\mathbf a$. The score is largest at small $t$, where $\Delta_t$ is small, so the small noise levels weigh most in
-$\mathcal E$. Restricting the sums to one level gives the error at that level. In \cref{sec:results,sec:steps} and in
-the appendix figures, $n=2{,}048$ and $L=32$, and the test sequences are the same for every model. The dotted line in
-the figures is the best linear denoiser: the linear function of $\mathbf x$ with the lowest $\mathcal E$, computed from
-the exact covariance of the chain.
-% src: experiments/protocol.py estimand; e14._pooled = e03._risk (region all); frozen_config t_grid = log grid 0.05..3, 12
+The first term is the Bayes loss, the loss of the exact score, which no denoiser can beat; the second is the excess,
+$\Delta_t$ times the mean squared score error, zero for the exact score. We average both over the twelve levels. A
+denoiser that always predicts $\widehat{\boldsymbol\xi}=\mathbf 0$ has loss $1$. On the Laplace chain the Bayes loss,
+averaged over the levels, is $0.27$ ($0.64$ at $t=0.05$ and $0.009$ at $t=3$), and on the Allen--Cahn field of
+\cref{sec:allen-cahn} it is $0.26$. The excess weights the levels by $\Delta_t$, so, unlike a score error, it is not
+dominated by the smallest noise levels.
+
+\paragraph{How the Bayes loss is computed.} On synthetic data we know the true kernel, so the exact score $\mathbf S_t$ is
+grid BP with the true kernel on $401$ points. Every run stores, per level, the sums of
+$(\widehat S_{t,k}-S_{t,k})^2$ and of $S_{t,k}^2$ over the test set, and \cref{eq:dsm-decomposition} then gives the DSM
+loss, its Bayes value and the excess exactly, without new training. On the Laplace test set of seed 0 the Bayes loss of
+\cref{eq:dsm-decomposition}, $0.2743$, agrees with the empirical loss of the true-kernel BP on one noise draw, $0.2724$,
+to the sampling error of that draw. Runs that kept only an error pooled over levels (the mixture by EM) were rescored
+from their stored kernels on their regenerated test sets, which reproduces their stored errors to $2\times10^{-9}$. On real
+data the true kernel is unknown, so only the DSM loss itself can be reported. The best linear denoiser, dotted in the
+figures, is the linear function of $\mathbf x$ with the lowest DSM loss, computed from the exact covariance of the chain.
+% src: tools/core/e89_dsm_rescore.py (E89): outputs/E89/levels.csv, dsm.csv, rescored_checks.csv; Bayes loss Laplace
+% closure_dsm_2000.csv mean over levels 0.2725 (E93 pilot test set 0.274), field E58 median 0.2646
 
 \paragraph{Gaussian approximation against grid BP (\cref{fig:grid-vs-gaussian}).} We draw $2{,}000$ Laplace chains
-($\alpha=0.85$, $L=32$) for each of the twelve levels and noise each one once. The reference is grid BP with the true
-Laplace kernel on $801$ points, and we compare two estimates with it. The first is grid BP with the same kernel on the
-$401$ points used in every experiment. The second is the Gaussian approximation: BP with Gaussian messages, which
-replaces the Laplace noise by Gaussian noise of the same variance. Its posterior mean is that of the Gaussian chain with
-the same covariance $(\boldsymbol\Sigma_0)_{ij}=\alpha^{|i-j|}$,
+($\alpha=0.85$, $d=32$) for each of the twelve levels and noise each one once. The reference is grid BP with the true
+Laplace kernel on $801$ points, a numerically exact stand-in for the true posterior mean, and we compare two estimates
+with it. The first is grid BP with the same kernel on the $401$ points used in every experiment. The second is the
+Gaussian approximation: BP with Gaussian messages, which replaces the Laplace noise by Gaussian noise of the same
+variance. Its posterior mean is that of the Gaussian chain with the same covariance $(\boldsymbol\Sigma_0)_{ij}=
+\alpha^{|i-j|}$,
 \begin{equation}
   \widehat{\mathbf m}=e^{-t}\boldsymbol\Sigma_0\big(e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I\big)^{-1}\mathbf x,
 \end{equation}
-which is also the best linear denoiser. Each posterior mean goes into Tweedie's formula, and for each sequence we
-compute $\|\widehat{\mathbf S}_t(\mathbf x)-\mathbf S_t(\mathbf x)\|/\|\mathbf S_t(\mathbf x)\|$ over its $32$
-sites. The figure shows the median of this ratio over the $2{,}000$ sequences at each level and its 10--90\% range.
-% src: tools/paper_figs/figs_v2.py::_closure_sweep (seed [20261108, round(1e4 t)]; reports/paper-figures/data/closure_sweep_2000.csv)
+which is also the best linear denoiser. Each posterior mean goes into Tweedie's formula, and for each sequence we compute
+the excess $\Delta_t\|\widehat{\mathbf S}_t(\mathbf x)-\mathbf S_t(\mathbf x)\|^2/32$ of \cref{eq:dsm-decomposition}. The
+figure shows its median over the $2{,}000$ sequences at each level and its 10--90\% range.
+% src: tools/paper_figs/figs_v5.py::_closure_dsm (seed [20261108, round(1e4 t)]; reports/paper-figures/data/closure_dsm_2000.csv)
 
 \paragraph{How far $\mathbf Q_t$ is from tridiagonal (\cref{fig:locality,fig:locality-curve}).} \Cref{fig:locality}
 shows the magnitude $|(\mathbf Q_t)_{ij}|$ of every entry. To sum up a whole matrix in one number we use the Frobenius
 norm of the entries at a given distance from the diagonal,
 \begin{equation}
-  \|\mathbf M\|_{d\ge2}=\Big(\sum_{|i-j|\ge2}M_{ij}^2\Big)^{1/2},
+  \|\mathbf M\|_{|i-j|\ge2}=\Big(\sum_{|i-j|\ge2}M_{ij}^2\Big)^{1/2},
   \qquad
-  \|\mathbf M\|_{d=1}=\Big(\sum_{|i-j|=1}M_{ij}^2\Big)^{1/2},
+  \|\mathbf M\|_{|i-j|=1}=\Big(\sum_{|i-j|=1}M_{ij}^2\Big)^{1/2},
 \end{equation}
 and define
 \begin{equation}
-  r(t)=\frac{\|\mathbf Q_t\|_{d\ge2}}{\|\mathbf Q_0\|_{d=1}} .
+  r(t)=\frac{\|\mathbf Q_t\|_{|i-j|\ge2}}{\|\mathbf Q_0\|_{|i-j|=1}} .
 \end{equation}
 The numerator is the coupling between sites that are not neighbours, which is zero at $t=0$. The denominator is the
 coupling between neighbours in the clean chain, a fixed scale. \Cref{fig:locality-curve} plots $r(t)$, and $t^{*}$,
@@ -683,11 +701,14 @@ the level framed in \cref{fig:locality}, is where $r$ is largest, found on a fin
 % 4,000 log-spaced t in [1e-3, 10^0.62]); t* = 0.0753
 
 \paragraph{Parameter updates (\cref{fig:steps}).} The horizontal axis counts how many times the parameters change. For
-the mixture, one update is one EM iteration: an E-step, which runs BP over all $N$ training sequences, and the
+the mixture, one update is one EM iteration: an E-step, which runs BP over all $n$ training sequences, and the
 closed-form M-step. For the neural kernel, one update is one Adam step on $Q$ (\cref{eq:em-objective}); from noisy data
 an EM iteration has one E-step and ten such steps, and from clean data there is no E-step. For a network, one update is
 one Adam step on a batch of $64$ sequences. So the updates do not cost the same: an EM update uses every training
 sequence and a network update uses $64$ of them. \Cref{app:compute} compares the methods in wall-clock time instead.
+This figure and the wall-clock one still show the relative score error
+$\big(\sum\|\widehat{\mathbf S}-\mathbf S\|^2/\sum\|\mathbf S\|^2\big)^{1/2}$, pooled over levels, sequences and sites;
+their curves were stored only in that form and have to be recomputed to be shown in the DSM loss.
 % src: tools/paper_figs/figs_v2.py::STEP_ARMS (energy scale x10); e63_curves_wall.csv
 
 \section{The Gaussian and the Laplace chain}
