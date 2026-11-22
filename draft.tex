@@ -78,11 +78,9 @@ variables.
   $\mathbb E[\mathbf a\mid\mathbf x]$, hence the score
   $\mathbf S_t(\mathbf x)=(e^{-t}\,\mathbb E[\mathbf a\mid\mathbf x]-\mathbf x)/\Delta_t$. Bottom: the neural kernel learned
   by expectation--maximisation (EM) from $n=2{,}048$ noisy sequences, as the density of $a_{k+1}$ given $a_k$ (each column
-  scaled to its maximum): the next value jumps between the two wells of the field. (c) One sequence at $t=0.3$: the clean
-  $\mathbf a$, the noisy $e^{t}\mathbf x$, the posterior mean computed by BP with the learned kernel, and the best linear
-  denoiser $\mathbf A_t\mathbf x$ with $\mathbf A_t=e^{-t}\boldsymbol\Sigma_0\boldsymbol\Sigma_t^{-1}$,
-  $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the
-  clean sequences. (d) Denoising score matching loss $L_{\rm DSM}$ on test sequences (mean over twelve noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over seeds. Solid line: the Bayes loss
+  scaled to its maximum): the next value jumps between the two wells of the field. (c) One sequence at $t=0.3$: the clean sequence $\mathbf a$, a sample of the stochastic Allen--Cahn field, which fluctuates by itself; the noisy sequence $\mathbf x$; the posterior mean $\mathbb E[\mathbf a\mid\mathbf x]$, computed by
+  BP with the learned kernel; and $\mathbf A_t\mathbf x$, the best linear estimator of $\mathbf a$ from $\mathbf x$, with $\mathbf A_t=e^{-t}\boldsymbol\Sigma_0\boldsymbol\Sigma_t^{-1}$, $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the clean
+  sequences. (d) Denoising score matching loss $L_{\rm DSM}$ on test sequences (mean over twelve noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over seeds. Solid line: the Bayes loss
   $L_{\rm Bayes}$, the loss of the exact score (computed by BP with the true kernel), which no denoiser can go below. Dashed: the best linear denoiser. The global MLP, the transformer and the window CNN are trained by denoising score
   matching; the neural kernel is learned by EM from noisy sequences and used inside BP. The global MLP is above the axis for $n\le512$.}
   \label{fig:summary}
