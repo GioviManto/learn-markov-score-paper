@@ -720,7 +720,7 @@ learned from noisy ones.
   % src: tools/paper_figs/figs_v5.py fig_steps (E94, outputs/hpc_E94_s*, frozen 23 Nov 2026)
 \end{figure}
 
-On one CPU thread at $N=2048$, an EM iteration takes $3.4$\,s for the mixture and $2.5$\,s for the neural kernel,
+On one CPU thread at $n=2048$, an EM iteration takes $3.4$\,s for the mixture and $2.5$\,s for the neural kernel,
 because BP runs over every training sequence; a clean-data iteration of the neural kernel takes $0.5$\,s. An SGD step
 takes $2.5$\,ms for the window CNN and $1.0$\,ms for the MLP. \Cref{fig:steps} counts parameter updates, in the DSM
 loss and with the same 16 seeds, data and test sequences for every model: the median curve of the mixture passes the
@@ -773,8 +773,8 @@ closest to the true kernel of all the families.
   \centering
   \includegraphics{fig_families}
   \caption{What each kernel family learns from noisy sequences: the learned law of the noise
-  $\varepsilon=a_{k+1}-\alpha a_k$ from $N=128$, $512$ and $2048$ sequences, against the Laplace law (dashed). For the
-  two families without the shift form we plot the learned $K(\varepsilon\mid a=0)$. One seed per $N$. \jgb{How are these curves produced, by plugging the final kernel in Eq. 2?}}
+  $\varepsilon=a_{k+1}-\alpha a_k$ from $n=128$, $512$ and $2048$ sequences, against the Laplace law (dashed). For the
+  two families without the shift form we plot the learned $K(\varepsilon\mid a=0)$. One seed per $n$. \jgb{How are these curves produced, by plugging the final kernel in Eq. 2?}}
   \label{fig:families}
   % src: mixture thesis exp_18 (innovation_density.csv); the six others outputs/hpc_E56_s*/densities.csv, seed 0
 \end{figure*}

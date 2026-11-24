@@ -421,7 +421,7 @@ learn the kernel.}
 \begin{figure*}[t]
   \centering
   \includegraphics{fig_families}
-  \caption{\note{Thesis Fig.~6.3 for every family (37:41): learned innovation law at $N=128$, $512$, $2048$ against
+  \caption{\note{Thesis Fig.~6.3 for every family (37:41): learned innovation law at $n=128$, $512$, $2048$ against
   the Laplace truth (dashed). Mixture from exp\_18; the other six from E56 (pending).}}
   \label{fig:families}
 \end{figure*}
@@ -431,7 +431,7 @@ Fourier series (28:18), polynomials, Gaussian RBF, Mat\'ern (29:29). Put the ser
 kernel, concave M-step. Local bases (spline, RBF) can make the kink; global (Fourier, Legendre) only by oscillating.
 Shift families vs agnostic ones (log-linear 2-D, neural energy kernel: 2-layer MLP, 13:45, 39:37).}
 
-\note{Mixture numbers (fig\_em\_innovation, App.~B): $\alpha$ within $0.1\%$ from $N=512$ ($2.4\%$ at $128$);
+\note{Mixture numbers (fig\_em\_innovation, App.~B): $\alpha$ within $0.1\%$ from $n=512$ ($2.4\%$ at $128$);
 excess kurtosis only within $6$--$25\%$.}
 
 \subsection{Against neural denoisers}
@@ -441,22 +441,22 @@ excess kurtosis only within $6$--$25\%$.}
   \centering
   \includegraphics{fig_value_of_structure}
   \caption{\note{Slide 14 as one plot (21:25): EM--BP, global MLP, window CNN, and BiGRU (the best of six from
-  $N=128$). Same test sequences, 16 seeds.}}
+  $n=128$). Same test sequences, 16 seeds.}}
   \label{fig:value-of-structure}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics{fig_families_error}
-  \caption{\note{Every kernel family against $N$, best network for reference. E56 (pending).}}
+  \caption{\note{Every kernel family against $n$, best network for reference. E56 (pending).}}
   \label{fig:families-error}
 \end{figure}
 
 \note{J\'er\^ome (21:25): this is where ML people will complain, so be careful. Networks: DSM on CLEAN sequences
 (an advantage), screened on dev seeds, validation checkpoint; EM sees one noisy copy of each sequence.}
 
-\note{Numbers (paired E02a/E03, mean per-seed ratio network/EM--BP, $N=32,128,512,2048$): MLP $5.79, 7.95, 7.88,
-9.85$; window CNN $2.07, 2.87, 3.45, 5.58$; BiGRU $2.22, 2.45, 2.24, 2.83$. Honest headline: best network at each $N$,
+\note{Numbers (paired E02a/E03, mean per-seed ratio network/EM--BP, $n=32,128,512,2048$): MLP $5.79, 7.95, 7.88,
+9.85$; window CNN $2.07, 2.87, 3.45, 5.58$; BiGRU $2.22, 2.45, 2.24, 2.83$. Honest headline: best network at each $n$,
 $2.1$--$2.8\times$. EM--BP error $0.099\to0.023$; CNN $0.19\to0.12$ (flat: the window floor of Sec.~3). These replace
 the thesis's $6.6$--$10.9\times$ and $2.3$--$6.1\times$.}
 
@@ -467,14 +467,14 @@ the thesis's $6.6$--$10.9\times$ and $2.3$--$6.1\times$.}
   \centering
   \includegraphics{fig_em_dynamics}
   \caption{\note{(a) EM log-likelihood against iteration, four starts. (b) Validation score error against parameter
-  updates: EM iterations (E56, pending) and SGD steps (E03), $N=2048$.}}
+  updates: EM iterations (E56, pending) and SGD steps (E03), $n=2048$.}}
   \label{fig:em-dynamics}
 \end{figure*}
 
 \note{J\'er\^ome (22:15, 23:50): dynamics curves; the claim is ``not only sample efficient, also step efficient''.
 Wall-clock is less important (23:50). Careful: he expects $\sim10$ steps (25:16); measured: likelihood plateau in
 $\sim20$ iterations, $\alpha$ settles in a median of 80 updates, the shape in 229 (tail 638) (thesis exp\_27). Still
-2--3 orders fewer than the networks' $10^3$--$3\times10^4$ SGD steps. Per EM iteration: 3--6.6\,s at $N=2048$, one
+2--3 orders fewer than the networks' $10^3$--$3\times10^4$ SGD steps. Per EM iteration: 3--6.6\,s at $n=2048$, one
 CPU thread (E56 timing).}
 
 \subsection{When the data are not Markov}
@@ -502,7 +502,7 @@ with neural denoisers trained directly on noisy observations.
 \subsection{Expectation--maximisation through BP}
 
 Let $K_\theta$ be a parametric family of transition kernels
-and let $\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(N)}$ denote
+and let $\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(n)}$ denote
 noisy training sequences, each observed at a noise level
 $t_d$. The clean sequences are latent variables. The
 observed-data likelihood is therefore
@@ -550,7 +550,7 @@ transition counts
 \begin{equation}
     \Xi(a,a')
     =
-    \sum_{d=1}^{N}
+    \sum_{d=1}^{n}
     \sum_{k=1}^{L-1}
     \xi_k^{(d)}(a,a').
 \end{equation}
@@ -707,7 +707,7 @@ the transition log-likelihood:
 \begin{equation}
     \mathcal{L}(\theta)
     =
-    \sum_{d=1}^{N}
+    \sum_{d=1}^{n}
     \sum_{k=1}^{L-1}
     \log K_\theta
     \left(
@@ -882,7 +882,7 @@ forward normalisers, cost.}
   \centering
   \includegraphics{fig_em_innovation}
   \caption{\note{Mixture ($C=8$): learned innovation law, and relative error of $\alpha$, variance and kurtosis
-  against $N$ (thesis Fig.~6.3).}}
+  against $n$ (thesis Fig.~6.3).}}
   \label{fig:em-innovation}
 \end{figure}
 
