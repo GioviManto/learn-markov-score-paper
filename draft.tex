@@ -34,23 +34,7 @@
 \printAffiliationsAndNotice{}
 
 \begin{abstract}
-Diffusion models generate data whose structure is not known in advance, and why they generalise remains largely
-unexplained. We study one of the simplest structures that seems adversarial to them: a first-order Markov chain.
-Because diffusion adds independent noise to every entry, the score of the noisy chain is no longer local, and a
-denoiser appears unable to use the Markov property. We show that the structure survives in the posterior. The clean
-sequence given its noisy version is still a chain, and therefore a tree. On a tree, belief propagation (BP, the
-sum--product algorithm) is exact: it computes the optimal denoiser, and hence the score at every noise level, in a
-number of steps that grows only linearly with the sequence length. This holds for any transition kernel. As the state
-is continuous, the messages are densities, which we represent on a grid and validate against the closed-form Gaussian
-case. Learning the denoiser then amounts to learning the transition kernel, either a parametric family or a small
-neural network, which we fit by expectation--maximisation with BP as the E-step. Measured by the denoising score
-matching loss, a kernel learned from noisy sequences outperforms a window CNN, a global MLP and a transformer, on a
-Laplace chain and on the stochastic Allen--Cahn field, while using fewer training sequences. This comes at a
-computational price: each update of the kernel is more expensive than a network step, because BP runs over every
-training sequence, although far fewer updates are needed. The networks are heavily optimised and our implementation
-is not, and its cost depends on the number of grid points and on whether the kernel is learned from noisy or clean
-sequences. The same factor-graph approach should apply wherever a Markov structure is coupled to other latent
-variables.
+Diffusion models generate data whose underlying structure is often unknown, and why they generalise remains largely unexplained. We study one of the simplest structures that seems adversarial to them: a first-order Markov chain. Because diffusion adds independent noise to every entry, the score of the noisy sequence is no longer local, making the Markov structure difficult to exploit directly. We show that this structure survives in the posterior: the clean sequence conditioned on its noisy version is still a chain, and therefore a tree. On a tree, belief propagation (BP, the sum–product algorithm) is exact: it computes the optimal denoiser, and hence the score at every noise level, in a number of steps linear in the sequence length. This holds for any transition kernel. For continuous states, the messages are densities, which we represent on a grid and validate against the closed-form Gaussian case. Learning the denoiser then amounts to learning the transition kernel, either parametrically or through a small neural network, which we fit by expectation–maximisation with BP as the E-step. Measured by denoising score matching loss, a kernel learned from noisy sequences outperforms a window CNN, a global MLP and a transformer on a Laplace chain and the stochastic Allen–Cahn field, using fewer training sequences. This comes at a computational price: each kernel update is more expensive than a network step because BP runs over every training sequence, although fewer updates are needed. The networks are heavily optimised while our implementation is not, and the cost depends on the grid resolution and on whether the kernel is learned from noisy or clean sequences. The same factor-graph approach should apply wherever Markov structure is coupled to other latent variables.
 \end{abstract}
 
 \jgb{Overall comments
