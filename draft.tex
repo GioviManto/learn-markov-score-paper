@@ -64,7 +64,7 @@ Diffusion models generate data whose underlying structure is often unknown, and 
   by expectation--maximisation (EM) from $n=2{,}048$ noisy sequences, as the density of $a_{k+1}$ given $a_k$ (each column
   scaled to its maximum): the next value jumps between the two wells of the field. (c) One sequence at $t=0.3$: the clean sequence $\mathbf a$, a sample of the stochastic Allen--Cahn field, which fluctuates by itself; the noisy sequence $\mathbf x$; the posterior mean $\mathbb E[\mathbf a\mid\mathbf x]$, computed by
   BP with the learned kernel; and $\mathbf A_t\mathbf x$, the best linear estimator of $\mathbf a$ from $\mathbf x$, with $\mathbf A_t=e^{-t}\boldsymbol\Sigma_0\boldsymbol\Sigma_t^{-1}$, $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the clean
-  sequences. (d) Denoising score matching loss $L_{\rm DSM}$ on test sequences (mean over twelve noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over seeds. Solid line: the Bayes loss
+  sequences. (d) Denoising score matching loss $L_{\rm DSM}$ on test sequences (mean over twelve noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over the same 8 seeds for every model. Solid line: the Bayes loss
   $L_{\rm Bayes}$, the loss of the exact score (computed by BP with the true kernel), which no denoiser can go below. Dashed: the best linear denoiser. The global MLP, the transformer and the window CNN are trained by denoising score
   matching; the neural kernel is learned by EM from noisy sequences and used inside BP. The global MLP is above the axis for $n\le512$.}
   \label{fig:summary}
@@ -364,14 +364,14 @@ inference, or learning the whole denoiser from examples.
 \begin{figure*}[t]
   \centering
   \includegraphics{fig_results}
-  \caption{DSM loss above the Bayes loss against the number of training sequences $n$, medians over seeds. (a) Laplace
-  chain, 16 seeds (8 for EM at $n\ge8192$ and for the transformer, which was run up to $n=2048$). (b) Allen--Cahn field
-  at $\Theta=0.3$ (\cref{sec:allen-cahn}), 8 seeds. Filled markers: kernels learned by EM from noisy sequences and used
-  inside BP. Global MLP, window CNN and transformer: DSM on the clean sequences. Dotted: the best linear denoiser.}
+  \caption{DSM loss above the Bayes loss against the number of training sequences $n$, for $d=32$, medians over 8 seeds;
+  every model has the same seeds, training sequences and test sequences. (a) Laplace chain. (b) Allen--Cahn field at
+  $\Theta=0.3$ (\cref{sec:allen-cahn}). Mixture and neural kernel: learned by EM from noisy sequences and used inside BP.
+  Global MLP, window CNN and transformer: DSM on the clean sequences. Dotted: the best linear denoiser.}
   \label{fig:results}
-  % src: tools/paper_figs/figs_v5.py::fig_results_draft on outputs/E89/dsm.csv (with the E91 refits and E86): (a) E02a+E86
-  % mixture rescored from theta, E56+E86 energy, E58 mlp/window/lmmse, E87 transformer; (b) E33 mixture rescored, E55
-  % em_energy, E58, E85 transformer. To be replaced by the d = 32 slice of E93 (one protocol for every arm).
+  % src: tools/paper_figs/figs_v5.py::fig_results_e93 on the frozen E93 outputs hpc_E93_{laplace,field}_d32 and
+  % _d32_n32768: every arm on seeds 0-7 and n = 32 ... 32768, validation 256 and test 512 sequences per seed, EM ladders
+  % to 800 iterations, networks 32,000 steps, the checkpoint with the lowest validation excess.
 \end{figure*}
 
 \paragraph{Results.}
@@ -381,13 +381,15 @@ sequences; EM sees one noisy copy of each sequence, the networks see the clean s
 (\cref{fig:results}a) both kernels learned by EM are below every network at every $n$, and the neural kernel is below
 each network in every seed, although the networks are trained on clean data. The global MLP is the furthest above. The
 window CNN stops improving near the best linear denoiser: this is the locality limit of \cref{sec:gaussian}. The
-transformer keeps improving but stays several times above the kernels. The mixture, with 25 parameters, is the best
-model at small $n$, and the neural kernel catches up as $n$ grows. The same holds against the three other architectures
+transformer improves for longer but also levels off, from $n=8{,}192$ on, and its gap to the kernels widens with $n$.
+The mixture, with 25 parameters, is the best model at small $n$; from $n=512$ on the two kernels are close. The same holds against the three other architectures
 (\cref{app:networks}), and fitting the neural kernel on clean sequences instead lowers its loss further
 (\cref{app:clean-vs-em}).
-% src: E89 dsm.csv, per-seed: E56 energy below E58 window and mlp 16/16 at every n <= 2048, below E87 transformer, bigru,
-% tcn, unet 8/8 (32/32 seed-paired cells each); medians at 2048: transformer 1.49e-3, mixture 1.57e-4, energy 1.46e-4;
-% window 5.71e-3 vs lmmse 7.27e-3; mixture/energy 0.7-0.7-0.7 for n <= 512, 1.1 at 2048.
+% src: E93 d = 32, seed-paired: kernel_em and mixture_em below mlp, window and transformer 8/8 at every n = 32 ... 32768
+% (Laplace); medians at 2048: transformer 1.70e-3, mixture 1.71e-4, neural kernel 1.66e-4; window 5.36e-3 vs best linear
+% 7.21e-3 (0.74-0.76 of it from 2048 on); transformer 1.45e-3 at 8192 and at 32768; transformer / neural kernel 3.9, 4.3,
+% 8.9, 10.2, 16.9, 25.8; mixture / neural kernel 0.61, 0.63, 0.86, 1.03, 0.69, 0.85 (n = 32 ... 32768). Other networks
+% (app:networks): E89 dsm.csv, E56 energy below E87 bigru, tcn, unet 8/8.
 
 \paragraph{Cost.}
 \label{sec:steps}
@@ -431,9 +433,10 @@ the state-dependent law (\cref{fig:summary}b); it is below every network from $n
 % src: 4,096 field chains (E93 make_data, seed 0): lag-1 correlation 0.83; a'-rho a: excess kurtosis 0.21 overall;
 % given a in a well std 0.51, kurtosis +0.7; between the wells (|a|<0.5) std 0.70, kurtosis -0.75. E33 em_mixture
 % fitted excess kurtosis -0.19..0.09 (seed 2 at n=32: 0.67). A Gaussian chain with rho = 0.83 has excess 2.656e-2 against
-% the best linear 2.644e-2 on that test set; E89 medians at 2048: mixture 2.685e-2, best linear 2.667e-2. E55 em_energy vs
-% E58 window 12.8 (8/8), mlp 100 (8/8), E85 transformer 5.4 (8/8) at 2048; at 32768 transformer 23.6; at n=32 the
-% window CNN is level with the neural kernel (ratio 1.0).
+% the best linear 2.644e-2 on that test set; E93 medians at 2048: mixture 2.67e-2, best linear 2.65e-2 (mixture / best
+% linear 1.06, 1.03, 1.01, 1.008, 1.004, 1.008 for n = 32 ... 32768). E93 kernel_em vs window 14.2, mlp 116, transformer
+% 6.7 at 2048 (8/8 each); transformer 23.0 at 32768; kernel_em below every network 8/8 from n = 128; at n = 32 the
+% window CNN is level with the neural kernel (median ratio 1.1, 5/8 seeds).
 
 \Cref{app:field} adds three higher temperatures and more kernels: every kernel whose shape can change with the current
 value beats each of the networks, which are trained on the clean sequences, and a kernel with the form of the lattice energy, with five
@@ -670,29 +673,29 @@ does not increase.
   \centering
   \includegraphics{fig_clean_vs_em}
   \caption{The neural kernel learned by EM from noisy sequences (filled) and fitted by maximum likelihood on the clean
-  sequences (open, dashed): DSM loss above the Bayes loss against $n$, medians over seeds (Laplace chain: 16, 8 for EM
-  at $n\ge8192$; Allen--Cahn field: 8). Dotted: the best linear denoiser. The arrow is the price of learning from noisy
-  data at $n=2048$.}
+  sequences (open, dashed): DSM loss above the Bayes loss against $n$, for $d=32$, medians over the same 8 seeds,
+  training sequences and test sequences for both. Dotted: the best linear denoiser. The arrow is the price of learning
+  from noisy data at $n=2048$.}
   \label{fig:clean-vs-em}
-  % src: tools/paper_figs/figs_v5.py::fig_clean_vs_em on outputs/E89/dsm.csv: E56+E86 energy and E58 energy_h16 (with the
-  % E91 refits) on the Laplace chain; E55 em_energy and E58 energy_h16 on the field
+  % src: tools/paper_figs/figs_v5.py::fig_clean_vs_em_e93 on the frozen E93 outputs (d = 32, n = 32 ... 32768, seeds
+  % 0-7): kernel_em (EM ladder to 800) and kernel_clean (maximum-likelihood ladder to 800), both chains
 \end{figure*}
 
 The same neural kernel can be learned in two ways (\cref{sec:kernel-families}). From clean sequences every transition
 $(a_k,a_{k+1})$ is observed, and maximum likelihood fits the kernel to their histogram. From noisy sequences the
 transitions are hidden: the E-step spreads each of them over its posterior, and EM fits the kernel to these soft counts.
-\Cref{fig:clean-vs-em} shows that the clean fit is better at every $n$, on both chains, by a factor between about 6 and
-13 on the Laplace chain and between 7 and 30 on the field.
+\Cref{fig:clean-vs-em} shows that the clean fit is better at every $n$, on both chains, by a factor between about 5 and
+21 on the Laplace chain and between 7 and 29 on the field.
 
 There are two reasons. The first is information: each training sequence is observed once, at one of the twelve noise
 levels, and at the larger levels the noisy value carries little of the clean one (at $t=1$ the clean sequence accounts
 for $e^{-2t}\approx14\%$ of the variance of $\mathbf x$), so a noisy sequence says less about the kernel than a clean one.
 The second is optimisation: EM moves slowly where the likelihood is flat, and its runs stop at a fixed number of
-iterations (\cref{app:em}). The growth of the gap with $n$ on the field is consistent with the second, but we did not
+iterations (\cref{app:em}). The growth of the gap with $n$ on both chains is consistent with the second, but we did not
 separate the two. In every comparison of the main text the networks are trained on clean sequences, while the kernel is
 learned from noisy ones.
-% src: E89 medians, energy (EM) / energy_h16 (clean): Laplace 6.4, 5.6, 9.6, 8.3, 13.5, 11.7 (n = 32 ... 32768); field 7.9,
-% 7.4, 8.2, 16.9, 27.0, 29.5
+% src: E93 medians, kernel_em / kernel_clean: Laplace 4.7, 6.5, 6.3, 10.9, 10.9, 20.6 (n = 32 ... 32768); field 6.9,
+% 6.8, 8.8, 9.8, 12.7, 28.5; clean below EM 8/8 seeds except Laplace n = 512 (6/8) and field n = 2048, 8192 (7/8)
 
 \section{Training time}
 \label{app:compute}

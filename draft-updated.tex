@@ -100,12 +100,12 @@ Allen--Cahn field, whose transition law changes shape with the state, the same c
   by expectation--maximisation (EM) from $n=2{,}048$ noisy sequences, as the density of $a_{k+1}$ given $a_k$ (each column
   scaled to its maximum): the next value jumps between the two wells of the field. (c) One sequence at $t=0.3$: the clean sequence $\mathbf a$, a sample of the stochastic Allen--Cahn field, which fluctuates by itself; the noisy sequence $\mathbf x$; the posterior mean $\mathbb E[\mathbf a\mid\mathbf x]$, computed by
   BP with the learned kernel; and $\mathbf A_t\mathbf x$, the best linear estimator of $\mathbf a$ from $\mathbf x$, with $\mathbf A_t=e^{-t}\boldsymbol\Sigma_0\boldsymbol\Sigma_t^{-1}$, $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the clean
-  sequences. (d) Denoising score matching loss $L_{\rm DSM}$ on test sequences (mean over twelve noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over seeds. Solid line: the Bayes loss
+  sequences. (d) Denoising score matching loss $L_{\rm DSM}$ on test sequences (mean over twelve noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over the same 8 seeds for every model. Solid line: the Bayes loss
   $L_{\rm Bayes}$, the loss of the exact score (computed by BP with the true kernel), which no denoiser can go below. Dashed: the best linear denoiser. The global MLP, the transformer and the window CNN are trained by denoising score
   matching; the neural kernel is learned by EM from noisy sequences and used inside BP. The global MLP is above the axis for $n\le512$.}
   \label{fig:summary}
   % src: tools/paper_figs/figs_v5.py::fig_summary_v5. (a) exact draw, Phi4Chain(T=0.3, h=1), seed 20261118, noise seed 7;
-  % (b, c) E55 em_energy n = 2048 seed 0 (theta), grid and best linear from E58's context; (d) outputs/E89/dsm.csv.
+  % (b, c) E55 em_energy n = 2048 seed 0 (theta), grid and best linear from E58's context; (d) E93 field d = 32 (seeds 0-7, same cells for every model).
 \end{figure*}
 
 \section{Introduction}
@@ -145,8 +145,8 @@ implementation. We finally show the efficiency of this denoising method on the s
 Allen--Cahn equation from statistical physics, where the neural kernel learned from noisy sequences outperforms standard
 deep denoisers in the denoising loss, by a factor that grows with the data, and in data efficiency: from 512 sequences
 its median loss is below that of every network trained on 32{,}768 (\cref{fig:summary}d). While we show that in
-% src: E89 field excess, E55 energy_em n = 512 (median 8.1e-4) vs n = 32768: window, MLP, transformer 8/8 paired seeds,
-% BiGRU 7/8 (median 1.16e-3).
+% src: E93 field d = 32 (the data of panel d): kernel_em at n = 512 (median 7.58e-4) vs n = 32768: window 3.13e-3 and MLP
+% 2.22e-2 (8/8 paired seeds), transformer 1.43e-3 (7/8).
 this extreme case of a Markov chain, training on uncorrupted samples by maximum likelihood remains more effective than
 learning from corrupted sequences, we believe that our factor-graph approach could be interesting where the Markov
 structure is coupled to other latent models, to which it could perhaps be generalized.
