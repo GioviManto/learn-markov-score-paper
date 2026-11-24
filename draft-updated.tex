@@ -50,13 +50,14 @@ non-local. Yet the posterior of a clean sequence given its noisy version is stil
 its messages on a grid, and learning the denoiser reduces to learning the transition kernel, a parametric family or a
 small neural network, fitted by expectation--maximisation from noisy sequences or by maximum likelihood from clean
 ones. We measure every model by the standard denoising score matching loss above its Bayes value. On a Laplace chain,
-the neural kernel learned from noisy sequences has a 3 to 64 times smaller excess loss than a window CNN and 4 to 17
-times smaller than a transformer trained on the clean sequences, from 32 to 8{,}192 training sequences. On the stochastic
-Allen--Cahn field, whose transition law changes shape with the state, the same comparison gives factors of 7 to 15 with
-2{,}048 training sequences and 15 to 38 with 8{,}192.
-% src: E93 (one protocol, d = 32, seeds 0-7, frozen 23 Nov 2026, tools/core/read_e93.py): per-seed median ratios to the
-% EM neural kernel, Laplace n = 32..8192: window 2.8, 4.4, 14.8, 33.5, 63.6; transformer 3.9, 4.4, 9.2, 10.7, 17.1 (8/8 every n);
-% field n = 2048: window 15.0, transformer 6.7, mlp 120 (8/8); n = 8192: window 37.7, transformer 14.8 (8/8).
+the neural kernel learned from noisy sequences has a 3 to 98 times smaller excess loss than a window CNN and 4 to 25
+times smaller than a transformer trained on the clean sequences, from 32 to 32{,}768 training sequences. On the
+stochastic Allen--Cahn field, whose transition law changes shape with the state, the same comparison gives factors of 7
+to 15 with 2{,}048 training sequences and 23 to 52 with 32{,}768.
+% src: E93 (one protocol, d = 32, seeds 0-7, frozen 23-24 Nov 2026, tools/core/read_e93.py): per-seed median ratios to the
+% EM neural kernel, Laplace n = 32..32768: window 2.8, 4.4, 14.8, 33.5, 63.6, 97.7; transformer 3.9, 4.4, 9.2, 10.7, 17.1,
+% 25.1 (8/8 every n); field n = 2048: window 15.0, transformer 6.7, mlp 120 (8/8); n = 32768: window 52.4, transformer
+% 23.5 (8/8).
 \end{abstract}
 
 \ifshowreview
@@ -80,8 +81,15 @@ Allen--Cahn field, whose transition law changes shape with the state, the same c
   refits (\cref{app:em}).
 \item New (23 Nov): \cref{fig:results} comes from one run in which every model has the same 8 seeds, training sizes
   and test sequences (E93); the step and wall-clock figures are in the DSM loss (E94, \cref{app:compute}).
-\item Calcium imaging: synthetic and real (Spikefinder) runs submitted, \pending{results pending}.
-\item Still in the relative score error (appendix only): \cref{tab:field}; a rerun in one protocol is queued (E95).
+\item New (24 Nov): \cref{fig:results} extended to $n=32{,}768$ (E93); sequence lengths $d=16$ to $128$ in the same
+  protocol (\cref{app:length}, E93); the Allen--Cahn table in one protocol and in the DSM loss (\cref{tab:field}, E95),
+  so the U-Net claims, which were in the relative score error, are gone from the main text, and the U-Net appears only
+  through its samples (\cref{app:field}, E55); calcium imaging, synthetic and real, with results (\cref{sec:calcium},
+  \cref{app:calcium}, E84, E88): on the Spikefinder recordings a BiGRU beats the kernels; EM with four times the
+  iterations at $n=8{,}192$ (\cref{app:em}, E90); a coarser BP grid, its cost and accuracy (\cref{app:bp}, E75);
+  4 stalled clean-data fits in E93 reported (\cref{app:em}).
+\item Nothing in the paper is in the relative score error any more; two departures from Markov in
+  \cref{app:nonmarkov} were only measured in it, and are mentioned without numbers.
 \end{itemize}}}
 \fi
 
@@ -190,7 +198,7 @@ A score estimate $\widehat{\mathbf S}_t$ predicts the added noise as $\widehat{\
     \label{eq:dsm}
 \end{equation}
 is the loss diffusion networks are trained on. We average it over twelve noise levels $t$ log-spaced between $0.05$
-and $3$ and evaluate it on 2{,}048 test sequences. No denoiser does better than the exact posterior mean, so
+and $3$ and evaluate it on held-out test sequences. No denoiser does better than the exact posterior mean, so
 $L_{\mathrm{DSM}}$ has a floor, the Bayes loss. On synthetic data we know the true kernel, and BP computes the exact
 posterior mean (\cref{sec:tree}), so we report the excess $L_{\mathrm{DSM}}-L_{\mathrm{Bayes}}$, which is zero for
 the exact score; on real data we report $L_{\mathrm{DSM}}$ itself.
@@ -345,29 +353,34 @@ clean sequences with fresh noise at every step (\cref{fig:routes}), with hyperpa
   kernel fitted on the clean sequences; arrow: the price of learning from noisy data. Networks: DSM on the clean
   sequences. Dotted: the best linear denoiser.}
   \label{fig:results}
-  % src: tools/paper_figs/figs_v5.py::fig_results_e93_clean on outputs/hpc_E93_{laplace,field}_d32/rows.csv (E93, frozen
-  % 23 Nov 2026; EM and clean-data ladders 800, networks 32,000 steps, test bundle 512 per seed)
+  % src: tools/paper_figs/figs_v5.py::fig_results_e93_clean on outputs/hpc_E93_{laplace,field}_d32{,_n32768}/rows.csv
+  % (E93, frozen 23 and 24 Nov 2026; EM and clean-data ladders 800, networks 32,000 steps, test bundle 512 per seed)
 \end{figure*}
 
 \paragraph{Results on the Laplace chain.}
 \label{sec:results}
-Each model is trained on $n$ sequences, from 32 to 8{,}192, with the same 8 seeds. EM sees one noisy copy of each
+Each model is trained on $n$ sequences, from 32 to 32{,}768, with the same 8 seeds. EM sees one noisy copy of each
 training sequence, at one of the twelve levels; the networks see the clean sequences and draw fresh noise at every step.
 Every model keeps the checkpoint with the lowest error on separate validation sequences, which matters for the networks,
 as they memorize small training sets (\cref{sec:memorization}).
 
 \Cref{fig:results}a shows the result. Both kernels learned by EM are below every network at every $n$. The neural kernel
-learned from noisy sequences has an excess loss 3 to 64 times smaller than the window CNN, 26 to 182 times smaller than
-the MLP and 4 to 17 times smaller than the transformer, in every seed (median ratios from $n=32$ to 8{,}192). The CNN
+learned from noisy sequences has an excess loss 3 to 98 times smaller than the window CNN, 26 to 263 times smaller than
+the MLP and 4 to 25 times smaller than the transformer, in every seed (median ratios from $n=32$ to 32{,}768). The CNN
 barely improves with more data and stays near the best linear denoiser: this is the locality limit of
-\cref{sec:gaussian}. The transformer keeps improving, but is still 11 times above the neural kernel at $n=2048$. The
-mixture, with 25 parameters, is the best model up to $n=512$, 1.1 to 1.7 times below the neural kernel, which catches up
-at $n=2048$. Fitted on clean sequences, the neural kernel is another 5 to 11 times better---the gap between the open and
-filled markers (arrow) is the price of learning from noisy data---and from 128 clean sequences it is 20 times below the
-window CNN trained on 8{,}192.
-% src: E93 d = 32 (read_e93.py), per-seed median ratios: window/nk 2.8, 4.4, 14.8, 33.5, 63.6; mlp/nk 25.6, 37.0, 86.8,
-% 112.3, 181.9; transformer/nk 3.9, 4.4, 9.2, 10.7, 17.1 (8/8 every n); nk/mixture 1.7, 1.1, 1.2, 1.0, 1.5 (7, 6, 6, 4, 6 of
-% 8); nk/clean 5.8, 6.1, 4.9, 8.8, 10.8; clean n=128 2.71e-4 vs window n=8192 5.38e-3 (x20).
+\cref{sec:gaussian}. The transformer improves up to $n=8{,}192$ and then levels off, 25 times above the neural kernel at
+$n=32{,}768$. The mixture, with 25 parameters, is level with the neural kernel or below it at every $n$ (the neural
+kernel is 1.0 to 1.7 times above it). Fitted on clean sequences, the neural kernel is another 5 to 22 times
+better---the gap between the open and filled markers (arrow) is the price of learning from noisy data---and from 128
+clean sequences it is 20 times below the window CNN trained on 32{,}768. The comparison holds for shorter and longer
+sequences: from $d=16$ to $128$ at $n=2{,}048$, the excess loss of every learned model falls with $d$, as each sequence
+carries more transitions, except that of the global MLP, whose input grows with $d$: its loss grows about 4.5 times, on
+both data sets (\cref{app:length}).
+% src: E93 d = 32 (read_e93.py), per-seed median ratios n = 32..32768: window/nk 2.8, 4.4, 14.8, 33.5, 63.6, 97.7; mlp/nk
+% 25.6, 37.0, 86.8, 112.3, 181.9, 263.4; transformer/nk 3.9, 4.4, 9.2, 10.7, 17.1, 25.1 (8/8 every n); nk/mixture 1.7,
+% 1.1, 1.2, 1.0, 1.5, 1.2; nk/clean 5.8, 6.1, 4.9, 8.8, 10.8, 22.3; transformer medians 1.70e-3, 1.45e-3, 1.45e-3 at 2048,
+% 8192, 32768; clean n=128 2.71e-4 vs window n=32768 5.45e-3 (x20). E93 d = 16..128 at n = 2048 (P1-P5 confirmed): mlp
+% Laplace 1.17e-2 -> 5.38e-2 (x4.6), field 1.57e-2 -> 7.12e-2 (x4.5); every other learned arm lower at d = 128 than at 16.
 
 \paragraph{Networks at their best.} A large network should close the gap given enough data. We retrained the best
 architectures with a learning-rate schedule and wider layers on up to $131{,}072$ clean sequences (\cref{app:networks}).
@@ -460,18 +473,20 @@ is almost Gaussian, so the best kernel of the shift form is close to a Gaussian 
 a linear denoiser: the mixture stays at the loss of a linear denoiser, slightly above the best one, from noisy and from
 clean data alike. The neural kernel has no such constraint and learns the
 state-dependent law (\cref{fig:summary}b). From 2{,}048 noisy sequences its excess loss is 15 times below the window CNN,
-120 times below the MLP and 7 times below the transformer, in every seed; at $n=8{,}192$ the transformer is still 15
-times above it. With 32 sequences it is level with the window CNN, below it in 5 of 8 seeds. Fitted on clean
-sequences, the neural kernel is 144 times below the CNN at $n=2048$.
-% src: E93 field d = 32 (read_e93.py): mixture/lmmse 1.0-1.1 (8/8); per-seed median ratios at 2048 window/nk 15.0,
-% mlp/nk 119.6, transformer/nk 6.7 (8/8); at 8192 transformer/nk 14.8 (8/8); n=32 window/nk 1.1 (5/8); window/clean 144 at
-% 2048 (7/8: one clean fit stalled).
+120 times below the MLP and 7 times below the transformer, in every seed; the transformer levels off from $n=8{,}192$
+and is 23 times above it at $n=32{,}768$. With 32 sequences it is level with the window CNN, below it in 5 of 8 seeds.
+Fitted on clean sequences, the neural kernel is 144 times below the CNN at $n=2048$. With longer sequences the gap to
+the best network grows: at $n=2{,}048$ it is 4.3 times at $d=16$ and 15 times at $d=128$ (\cref{app:length}).
+% src: E93 field d = 32 (read_e93.py): mixture/lmmse 1.01-1.05 (8/8 every n); per-seed median ratios at 2048 window/nk
+% 15.0, mlp/nk 119.6, transformer/nk 6.7 (8/8); transformer/nk 14.8 at 8192, 23.5 at 32768 (8/8); transformer medians
+% 1.46e-3, 1.34e-3, 1.43e-3 at 2048, 8192, 32768; n=32 window/nk 1.1 (5/8); window/clean 144 at 2048 (7/8: one clean fit
+% stalled). E93 P5: best network / EM kernel at n = 2048, d = 16, 32, 64, 128: 4.3, 6.7, 8.8, 14.7 (Laplace 7.7, 10.2,
+% 7.7, 10.2, no trend).
 
-\Cref{app:field} adds three higher temperatures and more kernels: every kernel whose shape can change with the current
-value beats the best network trained on the same noisy data, and a kernel with the form of the lattice energy, with five
-parameters, is the most accurate of all. A diffusion U-Net with $1.2\times10^{7}$ parameters, trained on the clean
-sequences, needs four times more data than the neural kernel to reach the same error.
-% src: figures/tab_field.tex; E55 finished cells (U-Net at n=8192 reaches the kernel's n=2048 error in every cell)
+\Cref{app:field} adds three higher temperatures and more kernels, all in the same protocol: every kernel whose shape can
+change with the current value is below each of the three networks at every temperature, and a kernel with the form of
+the lattice energy, with five parameters, is the most accurate of all.
+% src: E95 (frozen 24 Nov 2026; tools/core/read_e95.py: P1-P4 confirmed), figures/draft/tab_field_dsm.tex
 
 \subsection{Beyond chains: a tree with hidden nodes}
 \label{sec:tree-hidden}
@@ -490,8 +505,24 @@ In two-photon calcium imaging \cite{vogelstein2009spike,friedrich2017fast,berens
 concentration in a neuron is a first-order chain that decays and jumps at each spike, and the recorded fluorescence is
 this chain plus Gaussian noise: a fluorescence trace is the calcium chain already at a finite diffusion time. EM through
 BP therefore learns the calcium kernel from fluorescence alone, and BP then gives the score of the diffused
-fluorescence, its likelihood, and the posterior of the calcium, hence the spikes. \pending{Running: synthetic chains
-with the exact score, and the ten Spikefinder datasets with simultaneous electrophysiology \cite{berens2018community}.}
+fluorescence, its likelihood, and the posterior of the calcium, hence the spikes. On synthetic calcium chains, where
+the exact score is known, this works as on the Laplace chain: from 128 to 2{,}048 noisy traces, the mixture and the
+neural kernel learned by EM have an excess loss 13 to 220 times below the window CNN, and the best linear denoiser,
+which cannot follow the sparse jumps, is 74 to 470 times above the mixture (\cref{app:calcium}).
+
+The ten Spikefinder datasets, recorded together with electrophysiology \cite{berens2018community}, give a different
+answer. The neural kernel has a lower test DSM loss than the Gaussian chain in each of the 9 datasets where both fits
+ran, so the fluorescence is not Gaussian; but a BiGRU trained by DSM on the fluorescence has the lowest loss of all
+models in every dataset at $n=2{,}048$ and in 8 of 10 at $n=256$. At the resolution we use, these recordings are not a
+first-order chain. For spikes, the calcium posterior under the learned kernel correlates with the recorded spikes as
+well as under the Gaussian chain, with a median of 0.39 against 0.41 for a standard nonnegative deconvolution
+\cite{friedrich2017fast} (\cref{app:calcium}).
+% src: E84 in the DSM loss (tools/core/e84_dsm.py, C3 2.3e-14; read_e84 P1-P5 confirmed): window/energy 12.7-223, window/
+% mixture 20-144, lmmse/mixture 74-471 (per-seed medians, both chains, n = 128-2048; energy, mixture < window 8/8 every
+% cell). E88 (frozen 24 Nov 2026, tools/core/read_e88.py; G1-G3 pass): P2 energy < gauss 9/10 (gauss FAILED on dataset 8,
+% counted against); P1 FALSIFIED (energy below both networks at n = 256 in 2/10); bigru lowest at n = 2048 in 10/10;
+% P4 FALSIFIED (energy 0.392 vs gauss 0.423 with failed neurons counted against; 0.354 = 0.354 on the 100 common
+% neurons), P5 confirmed (OASIS 0.408, raw 0.304).
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -499,9 +530,11 @@ with the exact score, and the ten Spikefinder datasets with simultaneous electro
 For Markov sequences, the structure a denoiser can use is not in the score, which diffusion makes non-local, but in the
 posterior, which stays a tree. BP turns a kernel, a function of two numbers, into the exact score at every noise level,
 and EM learns the kernel from noisy data with BP as its E-step, without differentiating through it. A small neural
-kernel removes the need to choose a parametric family and reaches a denoising loss one to three orders of magnitude
-closer to the Bayes loss than networks with far more parameters. If the data are first-order Markov, it pays to learn
-the kernel and let BP compute the score.
+kernel removes the need to choose a parametric family and, from a few thousand noisy sequences, reaches a denoising
+loss 7 to 25 times closer to the Bayes loss than the best network of \cref{fig:results}, trained on the clean
+sequences, with far fewer parameters. If the data are first-order Markov, it pays to learn the kernel and let BP compute the score.
+% src: E93 d = 32, transformer (the best network) / EM neural kernel, per-seed medians at n = 2048, 8192, 32768: Laplace
+% 10.7, 17.1, 25.1; field 6.7, 14.8, 23.5.
 
 The method is not specific to diffusion. The same learned kernel gives, by BP, the posterior of a sequence observed with
 Gaussian noise of any level, the likelihood of a noisy sequence, and new sequences by ancestral sampling; EM through grid
@@ -511,9 +544,10 @@ state-space modelling, of which calcium imaging is one instance.
 \paragraph{Limits.} The Markov order has to be known, or a network has to learn the correction; on pairs of sites a
 grid step costs $O(N_g^3)$ instead of $O(N_g^2)$, and on data with long memory, such as fractional Gaussian noise, a
 network can win even close to first-order Markov. Each site carries one number here; a state with $m$ numbers needs a
-grid of $N_g^m$ points. The graph must be a tree, and the grid limits how small $t$ can be. Finally, a large network
-closes the gap when clean data are plentiful, so the gain we measure is in data efficiency, which matters most where
-scientific data are scarce.
+grid of $N_g^m$ points. The graph must be a tree, and the grid limits how small $t$ can be. Real data need not be
+first-order Markov at the resolution they are recorded at: on calcium recordings a BiGRU beats the learned kernel.
+Finally, a large network closes the gap when clean data are plentiful, so the gain we measure is in data efficiency,
+which matters most where scientific data are scarce.
 
 \paragraph{Related work.} EM with forward--backward as the E-step is the classical way to fit hidden Markov and
 state-space models \cite{baum1970,rabiner1989tutorial,shumway1982em,cappe2005}, and grids for non-Gaussian filtering go
@@ -542,8 +576,10 @@ no ethical concern specific to it.
 \section{How the figures are measured}
 \label{app:measures}
 
-\paragraph{The DSM loss.} The test set has $m=2{,}048$ sequences of length $d=32$ at each of the twelve noise levels
-$t\in\mathcal T$, log-spaced between $0.05$ and $3$, the same for every model. With $\widehat{\boldsymbol\xi}=
+\paragraph{The DSM loss.} The test set has $m$ sequences of length $d$ at each of the twelve noise levels
+$t\in\mathcal T$, log-spaced between $0.05$ and $3$, the same for every model of a figure: $m=512$ per seed in the
+single protocol of \cref{fig:summary}d, \cref{fig:results}, \cref{fig:length} and \cref{tab:field}, $m=2{,}048$ in the
+earlier runs, and $d=32$ except in \cref{fig:length}. With $\widehat{\boldsymbol\xi}=
 -\sqrt{\Delta_t}\widehat{\mathbf S}_t(\mathbf x)$, the noise $\boldsymbol\xi$ and the posterior mean of the noise
 $\mathbb E[\boldsymbol\xi\mid\mathbf x]=-\sqrt{\Delta_t}\mathbf S_t(\mathbf x)$, the cross term in
 $\|\boldsymbol\xi-\widehat{\boldsymbol\xi}\|^2$ has mean zero and $\mathbb E\,\xi_k^2=1$, so at each level
@@ -704,6 +740,19 @@ points: over 2{,}000 sequences the DSM loss differs by $4\times10^{-11}$ at $t=0
 % src: figs_v5._grid_gauss_dsm (excess ~1e-30 for t >= 0.05 at 101, 201, 401 points; 101 points: 1e-5 at t = 0.005);
 % figs_v5._closure_dsm (closure_dsm_2000.csv)
 
+\paragraph{A coarser grid.} BP takes $O(dN_g^2)$ operations, so the grid is the first thing to cut when speed matters.
+Against a reference with spacing $0.01$, BP with the true kernel on 101 points has an excess DSM loss of
+$5\times10^{-6}$ on the Laplace chain, whose kink converges slowly, against $7\times10^{-12}$ on 401 points; for kernels
+with smooth innovations (Gaussian, a Gaussian mixture) 101 points already reach round-off. A kernel learned on the
+coarser grid pays more: the neural kernel fitted on 101 points to 2{,}048 clean Laplace sequences has twice the excess
+loss of the one fitted on 401 points, $1.0\times10^{-4}$ against $5.0\times10^{-5}$. On 101 points BP takes 1.5\,ms per sequence for all twelve levels, against 9.3\,ms on 401
+(\cref{app:compute}).
+% src: E75 (registered 10 Nov 2026; laptop parts frozen 13 Nov, exclusive-node timing frozen 24 Nov; read_e75 P1 P2 P5
+% P6 confirmed, P3 P4 falsified). DSM from the stored per-level sums over the twelve levels (E89's formula), medians over
+% seeds 0-3, 128 test chains per level: oracle laplace 4.9e-6 (101) / 7.1e-12 (401); gauss, bimodal <= 3e-27 at 101;
+% learned (clean ML, N = 2048, half-width 8) laplace 1.01e-4 / 5.03e-5, per-seed median ratio 2.1; timing.csv
+% 1.463 / 9.284 ms per sequence (12 levels, B = 512, one thread, exclusive node).
+
 \begin{figure}[!htbp]
   \centering
   \includegraphics{fig_grid_gaussian}
@@ -728,43 +777,44 @@ points: over 2{,}000 sequences the DSM loss differs by $4\times10^{-11}$ at $t=0
 \end{figure}
 
 \paragraph{Data and selection.} Each clean training sequence is noised once, at one of the twelve noise levels, so EM
-sees $n$ noisy sequences in all. The networks instead see the clean sequences and draw fresh noise at every step. EM runs
-up to 1{,}200 iterations (2{,}400 for the neural kernel) and keeps the kernel at fixed checkpoints; every model, kernel or
-network, is tested at the checkpoint with the lowest score error on 1{,}024 validation sequences. Without the exact
-score, EM can select by the likelihood of noisy validation sequences, which BP computes, and a network by its validation
-loss.
-% src: experiments/e03_baselines.py::_one_view_groups; outputs/E02a/params_capacity.json; tools/core/read_e65.py (E65):
-% free/oracle max em_bp 1.7%, spline 6.9%, energy 6.9%, networks <= 3.4%
+sees $n$ noisy sequences in all. The networks instead see the clean sequences and draw fresh noise at every step. Every
+run saves checkpoints (EM iterations, M-steps on clean data or network steps), and every model is tested at the
+checkpoint with the lowest error against the exact score on separate validation sequences. \Cref{fig:summary}d,
+\cref{fig:results}, \cref{fig:length} and \cref{tab:field} use one protocol for every model: 8 seeds and the same
+training, validation (256) and test (512) sequences, up to 800 iterations for EM and for the clean fit, and up to
+32{,}000 steps for the networks. The kernel of \cref{fig:summary}b and the results of \cref{app:families},
+\cref{app:networks}, \cref{app:memorization}, \cref{app:nonmarkov} and \cref{app:tree} come from earlier runs, with up
+to 1{,}200 EM iterations for the mixture and 2{,}400 for the neural kernel; their captions give the seeds. The step
+curves of \cref{app:compute} select no checkpoint and score all of them. Without the exact score, EM can select by the
+likelihood of noisy validation sequences, which BP computes, and a network by its validation loss, as on the calcium
+recordings (\cref{app:calcium}).
+% src: E93/E95 driver_params (n_val 256, n_test 512, em_top 800, clean_top 800, net checkpoints to 32000, seeds 0-7);
+% E02a params_capacity.json (n_val 1024, n_test 2048, EM checkpoints to 1200), E55/E56/E87 params (1024, 2048, ladder to
+% 2400); E94 scores every checkpoint. experiments/e03_baselines.py::_one_view_groups (one noisy view per sequence).
 
-\paragraph{Training-set sizes.} \Cref{fig:results} comes from one run in which every model has the same 8 seeds, $n$
-from 32 to 8{,}192, the same test sequences and, for EM and the clean-data fit, a budget of 800 iterations. In earlier
-runs on the Laplace chain, EM from noisy sequences was run for $n$ from 32 to 2{,}048 with
-16 seeds and at $n=8{,}192$ and $32{,}768$ with 8 seeds, while the clean-data kernel and the networks go up
-to 32{,}768. The larger sizes were added later, to ask whether the
-networks catch up with the kernel given much more data. From clean data
-the transition counts $\Xi$ are computed once, in a few milliseconds, and an M-step then costs the same at every $n$.
-From noisy data every EM iteration runs BP over all $n$ sequences, so its cost grows in proportion to $n$: $3.4$\,s at
-$n=2{,}048$ for the mixture (\cref{app:compute}), about a minute at $n=32{,}768$, which makes 15 to 30 hours per fit and
-seed over the 1{,}200 to 2{,}400 iterations. At $n=8{,}192$ EM had the same iteration budget as at $n=2{,}048$, and it
-was not enough: the mixture was still improving on the validation sequences at its last checkpoint (1{,}200 iterations)
-in 7 of 8 seeds, and the neural kernel ran out of its 2{,}400 iterations in 4 of 8. The $n=8{,}192$ points of
-those runs are therefore what EM reaches with that budget, not with that much data. At $n=32{,}768$ the mixture
-was again still improving at its last checkpoint, in all 8 seeds, while the neural kernel met its stopping rule in every
-seed, after 786 to 2{,}377 iterations. Paired by seed, the mixture at $n=8{,}192$ is below its own loss at $n=2{,}048$ in
-5 of 8 seeds and the neural kernel in 6 of 8, and at $n=32{,}768$ both are below their loss at $n=8{,}192$, in 7 and 8
-of 8 seeds; at $n=32{,}768$ the two kernels are level (median ratio 0.94). The price of noisy data, the ratio of the EM
-neural kernel to the clean-data one, is 9 at $n=2{,}048$, 16 at $n=8{,}192$ and 10 at $n=32{,}768$ (medians of the
-per-seed ratios). A rerun at $n=8{,}192$ with four times the iteration budget is \pending{running}.
-% src: E86 (frozen 19 Nov 2026, outputs/hpc_E86_n8192): capacity.csv at_cap 7/8 with val_curve still falling at 1200;
-% kernels.csv stop_reason censored 4/8 (n_iters 2401); read_e86 P1 8192<2048 5/8; medians energy 0.0171, energy_h16
-% 0.0045 (seed mean ratio 0.95 because E58's clean fit at n=8192 seed 1 stalled at 0.1228: registered P2 FALSIFIED as
-% worded). n=32768 (frozen 21 Nov, outputs/hpc_E86_n32768; DSM by tools/core/e86_dsm.py, C2 8.0e-10): read_e86 P1
-% FALSIFIED (8192<2048 5/8, 32768<8192 7/8), P2 FALSIFIED as worded on the original E58 rows (8192 0.95, 32768 3.62),
-% P3 CONFIRMED. DSM with the E91 refits: mixture 32768<8192 7/8, energy 8/8; mixture at_cap 8/8 (checkpoint 1200);
-% energy stop_reason converged 8/8 (786-2377 iters); medians 32768 mix 2.53e-5, energy 2.71e-5, nk/mix 0.94 (mix<nk
-% 3/8); EM/clean median per-seed ratio 8.7 / 15.8 / 10.4 at 2048 / 8192 / 32768.
-% src: E58 registry (sizes 32..32768 added 31 Oct for the clean arms; clean Xi 5 ms at N = 2048; M-step does not depend
-% on N); E63 timing 3.4 s / 2.5 s per EM iteration at N = 2048 -> x16 = 54 s / 40 s; x1200 / x2400 = 18 h / 27 h
+\paragraph{Training-set sizes and cost.} In the single protocol every model, EM included, is trained at every $n$ from
+32 to 32{,}768 at $d=32$, and up to 8{,}192 at the other lengths. From clean data the transition counts $\Xi$ are
+computed once, in a few milliseconds, and an M-step then costs the same at every $n$. From noisy data every EM iteration
+runs BP over all $n$ sequences, so its cost grows in proportion to $n$: $3.4$\,s at $n=2{,}048$ for the mixture
+(\cref{app:compute}). At $n=32{,}768$ an EM fit of 800 iterations took about seven hours per seed on one CPU core,
+against about twelve minutes for the clean fit of the same kernel. At the largest $n$ most runs keep their last
+checkpoint, EM, clean fits and networks alike (the mixture on the field, which converges early, is the exception): their
+validation error was still falling when they stopped, and the curves there are those of a fixed budget.
+
+How much a larger budget buys we measured on the Laplace chain at $n=8{,}192$, in an earlier run with 1{,}200 EM
+iterations for the mixture and 2{,}400 for the neural kernel, repeated with 4{,}800 and 7{,}200. The neural kernel had
+already met its stopping rule: in 6 of 8 seeds it selects the same checkpoint and in the other two its loss moves by
+less than 1\%. The mixture, which had stopped on its last checkpoint in 7 of 8 seeds, improves in 6 of 8, by up to a
+factor 2.7, and ends on the new cap in one seed only. Even so, it is below the mixture trained on 2{,}048 sequences in
+only 5 of 8 seeds.
+% src: E93 wall at n = 32768 (medians over seeds, one process per seed, single-threaded BLAS): kernel_em 6.6 / 7.4 h,
+% mixture_em 7.4 / 7.1 h, kernel_clean 0.20 / 0.19 h (Laplace / field). Share of seeds at the last checkpoint, n = 32768
+% (Laplace / field): kernel_em 1.00 / 1.00, mixture_em 1.00 / 0.00, kernel_clean 0.62 / 0.88, mlp 1.00 / 1.00,
+% transformer 1.00 / 0.88, window 0.75 / 0.88. E63 timing 3.4 s per mixture EM iteration at n = 2048; clean Xi 5 ms.
+% E90 (frozen 24 Nov 2026; tools/core/read_e90.py, G1 curves identical to E86 up to E86's caps; P1 FALSIFIED 5/8, P2 P3
+% confirmed); DSM tools/core/e90_dsm.py (C2 1.7e-9): mixture E90/E86 excess per seed 0.53, 1.00, 0.69, 0.78, 0.64, 1.02,
+% 0.45, 0.37 (below in 6/8); selected checkpoint = 4800 in 1/8; neural kernel E90 = E86 in seeds 0, 1, 2, 4, 6, 7, within
+% 1% in 3 and 5; mixture 8192 < E02a 2048 in 5/8 (relative and DSM alike).
 
 \paragraph{M-steps.} For the mixture, the M-step is a closed-form update \cite{meng1993maximum}: each component's weight,
 mean and variance are the weighted frequency, mean and variance of the residuals $g_i-\alpha g_j$, with weights $\Xi_{ij}$
@@ -775,15 +825,19 @@ $Q$, differentiating only through the network and its normalisation on the grid,
 does not increase.
 
 \paragraph{Clean-data fits.} From clean sequences the neural kernel is fitted by the same Adam steps and the same step
-halving, on the likelihood itself. In 29 of its 144 clean fits on the two data sets of \cref{fig:results}, the halving
-drove the step size below $10^{-6}$, which freezes the fit; five of them had stopped near the loss of the best linear
-denoiser. We refitted these 29 from the same initialisation, with the same data and budget, restarting Adam after every
-rejected step, and report the refits. None of them stalls again, and they lower the medians of \cref{fig:results} by at
-most 23\%.
+halving, on the likelihood itself. The halving can drive the step size so low that the fit freezes far above where it
+should end. In the earlier runs this happened in 29 of 144 clean fits, five of them near the loss of the best linear
+denoiser; we refitted these 29 from the same initialisation, with the same data and budget, restarting Adam after every
+rejected step, and report the refits (\cref{fig:params}, \cref{app:networks}). None of them stalls again. In the single
+protocol it happened in 4 of the 96 clean fits at $d=32$, which stop 70 to 4{,}000 times above the median of their
+cell, and in 13 of 336 over all lengths. They are kept: \cref{fig:results} shows medians, which they raise by at most 24\% (on
+the Laplace chain at $n=512$, where two of the eight fits stalled).
 % src: E91 (registered 20 Nov 2026; stalled list outputs/E91_list/stalled.csv written before submission; frozen
 % outputs/hpc_E91_r0 21 Nov): read_e91 G1 pass, P1-P3 confirmed, no restart needed. DSM: tools/core/e91_dsm.py (same
 % bundles: sq_ref equal to E58's, C2 4e-14). Truly stuck: laplace s1, s8 at 8192; field s2 at 8192, s6, s7 at 512.
-% Median changes: laplace 8192 -23.3%, 32768 -15.2%; field 512 -19.9%, 2048 -8.7%, 8192 -4.3%, 32768 -5.9%; others 0.
+% E93 clean fits > 20 x their (chain, d, n) median: d = 32 laplace n=512 s0 (71x), s5 (88x); field n=2048 s4 (1228x),
+% n=8192 s0 (4108x); medians without them: laplace 512 4.67e-5 vs 6.12e-5 (-24%), field 2048 2.20e-5 vs 2.25e-5, field
+% 8192 6.01e-6 vs 6.56e-6.
 
 \section{Training time}
 \label{app:compute}
@@ -798,9 +852,12 @@ between 8{,}000 and 32{,}000 steps), and so are the MLP and the transformer. \Cr
 time, with the seconds per update measured on one CPU thread.
 % src: E94 (frozen 23 Nov 2026; tools/core/read_e94.py: G1-G2 pass, P1-P4 confirmed 16/16, 16/16, 16/16, +0.225); window
 % final median 5.56e-3; medians mixture 1.62e-3 at 20 its; energy_em 3.58e-3 at 200; energy_clean 4.04e-3 at 100
-At test time, BP on the 401-point grid takes about $7$\,ms per sequence for all
-twelve noise levels. However, reducing the number of points on the grid notably reduces the time consumed.
-% src: outputs/hpc_E63/timing.csv (E63, tools/core/read_e63.py D1); e63_curves_wall.csv at N = 2048
+At test time, BP on the 401-point grid takes $9.3$\,ms per sequence for all twelve noise levels, on one thread of a
+node to itself; on coarser grids it is $3.4$\,ms (201 points) and $1.5$\,ms (101 points), at a cost in accuracy
+discussed in \cref{app:bp}.
+% src: E75 timing (exclusive node, frozen 24 Nov 2026, outputs/hpc_E75_timing/timing.csv; read_e75 P5 confirmed, ratio
+% 101 / 401 = 6.35): 1.463 ms (101), 3.388 ms (201), 9.284 ms (401), B = 512, L = 32, best of 3. E63's laptop figure
+% was about 7 ms (outputs/hpc_E63/timing.csv).
 
 \begin{figure}[!htbp]
   \centering
@@ -955,6 +1012,34 @@ mixture $1.05\times10^{-4}$, and the neural kernel fitted on 2{,}048 clean seque
   % src: tools/paper_figs/figs_v5.py::fig_networks_dsm (E89: E87 networks, E02a rescored, E56)
 \end{figure}
 
+
+\section{Shorter and longer sequences}
+\label{app:length}
+
+The single protocol of \cref{fig:results} was run at four sequence lengths, $d\in\{16,32,64,128\}$, with
+$n\in\{32,\ldots,8{,}192\}$ at every length, the same 8 seeds and, at each length, the same training, validation and
+test sequences for every model; the networks keep the hyperparameters chosen at $d=32$. \Cref{fig:length} shows the
+excess DSM loss at $n=2{,}048$. Each sequence carries $d-1$ transitions, so the kernels, which learn from transitions,
+improve with $d$, and so do the window CNN and the transformer, which share their weights along the sequence. The
+global MLP is the exception: its input grows with $d$ and its loss with it, at every $n$, by about 4.5 times from $d=16$
+to $128$ at $n=2{,}048$. At $n=512$ the clean-data neural kernel is 7 to 8 times better at $d=128$ than at $d=16$, and it is below each network at every length and every $n\ge128$, on both data sets; the kernel learned by
+EM is below each network at every length at $n=2{,}048$. On the field the gap between the best network and the kernel
+learned by EM grows with $d$, from 4.3 to 15 times; on the Laplace chain it stays between 7.7 and 10.2.
+% src: E93 (registered and amended 22 Nov 2026, frozen 23-24 Nov; tools/core/read_e93.py: P1-P5 confirmed on both
+% chains). n = 512: mlp Laplace 2.16e-2, 3.36e-2, 4.89e-2, 8.08e-2 and field 2.64e-2, 4.44e-2, 6.74e-2, 1.01e-1 (d = 16..128);
+% kernel_clean Laplace 1.27e-4 -> 1.83e-5 (x6.9), field 1.58e-4 -> 2.03e-5 (x7.8). n = 2048 table printed by
+% figs_v5.fig_length_e93. P5 ratios: field 4.35, 6.65, 8.80, 14.65; Laplace 7.74, 10.23, 7.69, 10.23.
+
+\begin{figure*}[!htbp]
+  \centering
+  \includegraphics{fig_length_e93}
+  \caption{DSM loss above the Bayes loss against the sequence length $d$, with $n=2{,}048$ training sequences, medians
+  over 8 seeds; at each $d$ every model has the same seeds, training sequences and test sequences. (a) Laplace chain.
+  (b) Allen--Cahn field at $\Theta=0.3$; there the mixture lies on the best linear denoiser. Markers as in
+  \cref{fig:results}.}
+  \label{fig:length}
+  % src: tools/paper_figs/figs_v5.py::fig_length_e93 on outputs/hpc_E93_{laplace,field}_d{16,32,64,128}/rows.csv
+\end{figure*}
 
 \section{Memorization}
 \label{app:memorization}
@@ -1122,30 +1207,115 @@ temperature.
 has the form of the lattice energy, $K(a'\mid a)\propto\exp(-(a'-a)^2/2\gamma-f(a)-f(a'))$ with $f$ a polynomial of
 degree four. The \emph{tilted spline} (25) is a random walk tilted by a learned function of $a'$. The \emph{free mixture}
 (24) is a mixture of four Gaussians for the pair $(a,a')$, read as a conditional law. The \emph{log-linear} kernel
-(100) and a \emph{mixture density network} (1{,}516) know nothing about the field. The neural kernel (337 to 1{,}185
-parameters) and the shift mixture (25) are those of \cref{sec:kernel-families}. The networks of \cref{tab:field} are a
-window CNN and a transformer, each trained in two ways on the same noisy sequences as EM, and we report the best of the
-four; the U-Net is a diffusion U-Net with $1.2\times10^7$ parameters, trained on the clean sequences.
+(100) and a \emph{mixture density network} (1{,}516) know nothing about the field. The neural kernel (337 parameters)
+and the shift mixture (25) are those of \cref{sec:kernel-families}. The networks of \cref{tab:field} are the global MLP,
+the window CNN and the transformer of the main text, trained by DSM on the clean sequences. Every model of the table has
+the same 8 seeds, training sequences and test sequences.
 
-\paragraph{Results.} \Cref{tab:field} gives the errors relative to the best linear denoiser. Every kernel whose shape can
-change with $a$ beats the best of the four networks at every temperature, including the ones that know nothing about
-the field. The shift mixture is no better than the linear denoiser at any temperature. The site energy, which has the
-right form, is the most accurate model everywhere. The U-Net is a much stronger network than the other four, and the
-neural kernel still beats it in 30 of 32 paired seeds with 2{,}048 sequences; the U-Net needs 8{,}192 sequences to
-reach the neural kernel's error.
-% src: figures/tab_field.tex (tools/paper_figs/make_paper_figures.py::tab_field); E55 finished cells: wins 8/8/8/6;
-% U-Net at N=8192 reaches the kernel's N=2048 error in every cell
+\paragraph{Results.} \Cref{tab:field} gives the excess DSM loss of every model, with the Bayes loss of each temperature.
+Every kernel whose shape can change with $a$ is below each of the three networks at every temperature, including the
+ones that know nothing about the field, the log-linear kernel and the MDN. The shift mixture is at the loss of the best
+linear denoiser at every temperature, as on the field of the main text. The site energy, which has the right form, is
+the most accurate model everywhere, and the neural kernel is below the window CNN in at least 7 of 8 seeds at every
+temperature.
+% src: E95 (frozen 24 Nov 2026; tools/core/read_e95.py: P1-P4 confirmed): worst kernel/best network 0.50, 0.45, 0.25, 0.31;
+% shift mixture / lmmse 1.007, 1.001, 1.007, 1.020; neural kernel < window 8, 7, 8, 8 of 8 seeds
 
 \begin{table}[!htbp]
-  \caption{Allen--Cahn field: relative score error divided by that of the best linear denoiser, from 2{,}048 training
-  sequences; mean over 16 seeds (8 for the neural kernel and the U-Net). Best of four: a window CNN and a transformer,
-  each trained in two ways on the same noisy sequences as EM. Dashes: not run.}
+  \caption{Allen--Cahn field: excess DSM loss ($\times10^{-3}$) from 2{,}048 training sequences, medians over 8 seeds, the
+  same seeds, training sequences and test sequences for every model. Kernels: learned by EM from noisy sequences, used
+  inside BP. Networks: DSM on the clean sequences. Last row: the Bayes loss itself.}
   \label{tab:field}
   \centering
   \small
   \setlength{\tabcolsep}{3.5pt}
-  \input{figures/draft/tab_field.tex}
-  % src: figures/tab_field.tex = tools/paper_figs/make_paper_figures.py::tab_field (E33, E43, E60, E55 finished cells)
+  \input{figures/draft/tab_field_dsm.tex}
+  % src: tools/paper_figs/tab_e95.py on outputs/hpc_E95_*/rows.csv (E95, frozen 24 Nov 2026)
+\end{table}
+
+\paragraph{Generation.} A separate run asks whether the learned kernels also generate good samples. On four versions
+of the field ($\Theta=0.3$ with 32, 128 and 512 sites, and $\Theta=1$ with 32), with $n=128$ and $2{,}048$ training
+sequences and 4 seeds, every model generates 2{,}048 sequences with the ancestral sampler of
+\cref{app:memorization-gen}, with the same sampler noise: the neural kernel and the site energy learned by EM, through
+BP at every level, and two networks trained by DSM on the clean sequences at continuous noise levels, the window CNN
+and a diffusion U-Net with $1.2\times10^{7}$ parameters. With 2{,}048 sequences the sliced Wasserstein-2 distance to new
+exact draws is 0.05 to 0.06 for both kernels and for the U-Net, at the level of a second batch of exact draws (0.046 to
+0.054) and of the exact denoiser through the same sampler (0.049 to 0.055), and 0.08 to 0.14 for the window CNN. With 128
+sequences the kernels are at 0.055 to 0.086, while the samples of the U-Net, selected after a few hundred steps, diverge
+(distances 3 to 5).
+% src: E55 part gen (amendment 2026-10-28 option A; frozen 24 Nov 2026, outputs/hpc_E55_gen_*; descriptive D4, no
+% prediction), medians over seeds 0-3 of swd: n = 2048 em_energy 0.050-0.061, site_energy 0.050-0.061, unet_cont
+% 0.049-0.060, window_cont 0.078-0.144, exact 0.046-0.054, oracle_sampler 0.049-0.055; n = 128 em_energy 0.056-0.086,
+% site_energy 0.055-0.081, unet_cont 3.0-5.5 (checkpoint 256, the first rung). Cells T0.3_h1_L32, T0.3_h0.25_L128,
+% T0.3_h1_L512, T1_iso_L32.
+
+\section{Calcium imaging}
+\label{app:calcium}
+
+\paragraph{Synthetic chains.} The standardised calcium follows $c_{k+1}=\gamma c_k+\sigma_0z_k+J_kB_k$, with $z_k$
+standard Gaussian, $B_k$ a Bernoulli spike of probability $p$ and $J_k$ an exponential jump of mean one, then shifted and
+scaled to zero mean and unit variance; the small Gaussian part ($\sigma_0$ such that its standard deviation is $0.1$
+after scaling) lets the grid resolve the kernel. Chain A has $\gamma=0.9$, $p=0.05$, chain B $\gamma=0.95$, $p=0.02$,
+both with $d=32$; the grid has 701 points on $[-14,14]$, because standardised spikes are large. The exact score is
+grid BP with the true kernel. The models are those of the Laplace chain: the mixture, a free mixture of four Gaussians
+for the pair and the neural kernel learned by EM from one noisy copy of each sequence, the neural kernel fitted on the
+clean sequences, and the global MLP and window CNN trained by DSM on the clean sequences; $n\in\{128,512,2048\}$,
+8 seeds, the same test sequences for every model. \Cref{tab:calcium-synth} gives the excess DSM loss. The mixture and
+the neural kernel learned by EM are below both networks in every seed and at every $n$, and the mixture recovers the
+decay $\gamma$ to within $0.02$ in every seed at $n=2{,}048$. The best linear denoiser, which is BP with the Gaussian
+chain of the same covariance, is far above every learned kernel: a linear denoiser cannot follow the sparse jumps.
+% src: experiments/registry/E84.json; tools/core/read_e84.py (P1-P5 confirmed, in the relative error); DSM from the stored
+% per-level sums by tools/core/e84_dsm.py (outputs/E84_dsm, C3 2.3e-14); P4 |rho - gamma| <= 0.02 in 8/8 on both chains.
+
+\begin{table}[!htbp]
+  \caption{Synthetic calcium chains A ($\gamma=0.9$, $p=0.05$) and B ($\gamma=0.95$, $p=0.02$): excess DSM loss
+  ($\times10^{-3}$), medians over 8 seeds, the same seeds, training sequences and test sequences for every model. EM: from one noisy copy of each sequence; clean: maximum likelihood on
+  the clean sequences; networks: DSM on the clean sequences. Last row: the Bayes loss itself.}
+  \label{tab:calcium-synth}
+  \centering
+  \small
+  \input{figures/draft-updated/tab_calcium_synth.tex}
+  % src: tools/paper_figs/tab_calcium.py on outputs/E84_dsm/dsm.csv (E84, frozen 19 and 24 Nov 2026)
+\end{table}
+
+\paragraph{Spikefinder.} The public Spikefinder training set \cite{berens2018community} has ten datasets of
+fluorescence traces at 100\,Hz with spikes recorded at the same time, 6 to 37 neurons each. Per neuron we average blocks
+of four samples (25\,Hz, spikes summed), subtract a rolling 10th percentile over 30\,s, divide by the standard
+deviation, clip at $\pm13.5$, and estimate the imaging noise $\sigma$ from the autocovariances at lags 0 to 2, which is
+exact for a chain with geometric autocovariance; scaled by $(1+\sigma^2)^{-1/2}$, a trace is the calcium chain at
+diffusion time $t_0=\tfrac12\log(1+\sigma^2)$. The estimated noise is small: in 7 of the 10 datasets its median over
+neurons is at the lower bound of $0.05$ we allow, so $t_0$ is at most $0.004$ and the recordings are nearly a clean
+view of the chain they are modelled by. Windows of $d=32$ sites (1.28\,s) are split by neuron, 30\% of the neurons of
+each dataset for testing, in two seeds. The Gaussian chain, the mixture and the neural kernel are learned by EM through
+BP on 561 grid points, the window CNN and a BiGRU by DSM on the training windows; every model is selected on the DSM
+loss of 512 validation windows, as no exact score exists. We report the test DSM loss itself, at the twelve levels of
+the paper, and, for the spikes, the correlation with the recorded spike counts per 40\,ms bin of the positive part of the
+increments of the posterior mean of the calcium, against the same for the raw fluorescence and a nonnegative
+deconvolution with one exponential decay per neuron, OASIS \cite{friedrich2017fast} (our implementation, without a
+sparsity penalty, the decay from the lag-one autocorrelation of the trace).
+
+\Cref{tab:calcium-real} gives the results. The Gaussian chain failed on dataset 8: a test window fell outside its grid
+and BP lost all its mass. Elsewhere the neural kernel is below the Gaussian chain in every dataset, both in DSM loss
+and in held-out likelihood, and the mixture too in likelihood. The BiGRU is the best model in every dataset at
+$n=2{,}048$, and in 8 of 10 at $n=256$, where the neural kernel is below both networks in the other two. Pooled over the
+114 test neurons of both splits, the median spike correlation is $0.39$ for the neural kernel, $0.41$ for OASIS and
+$0.30$ for the raw increments; on the 100 neurons where every method ran, the neural kernel and the Gaussian chain both
+have $0.35$.
+% src: experiments/registry/E88.json (amendments 1 and 2); tools/core/read_e88.py (G1-G3 pass; P1 FALSIFIED 2/10, P2 and P3
+% FALSIFIED only by the failed Gaussian fit on dataset 8 (9/9 elsewhere), P4 FALSIFIED, P5 CONFIRMED); D4 sigma medians
+% 0.05 in datasets 2, 3, 4, 6, 7, 9, 10, 0.08-0.09 in 1, 5, 8.
+
+\begin{table}[!htbp]
+  \caption{Spikefinder: test DSM loss at $n=2{,}048$ training windows (mean over the two neuron splits; dash: the fit
+  failed), and the median correlation with the recorded spikes over the test neurons of both splits. Neural kernel and
+  Gaussian chain: from the posterior of the calcium under the kernel learned by EM; raw: positive increments of the
+  fluorescence; OASIS: nonnegative deconvolution.}
+  \label{tab:calcium-real}
+  \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \input{figures/draft-updated/tab_calcium_real.tex}
+  % src: tools/paper_figs/tab_calcium.py on outputs/hpc_E88_*2 (E88, frozen 24 Nov 2026)
 \end{table}
 
 \end{document}

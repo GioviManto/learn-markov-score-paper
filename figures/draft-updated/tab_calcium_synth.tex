@@ -1,0 +1,19 @@
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+ & \multicolumn{3}{c}{chain A} & \multicolumn{3}{c}{chain B}\\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+$n$ & 128 & 512 & 2{,}048 & 128 & 512 & 2{,}048\\
+\midrule
+mixture (EM) & 1.18 & 0.537 & 0.275 & 1.22 & 0.313 & 0.194\\
+free mixture (EM) & 3.75 & 1.98 & 1.55 & 3.59 & 1.32 & 0.334\\
+neural kernel (EM) & 1.97 & 0.597 & 0.145 & 1.83 & 0.293 & 0.128\\
+neural kernel (clean) & 0.347 & 0.0992 & 0.0358 & 0.74 & 0.123 & 0.0328\\
+\midrule
+window CNN & 24.3 & 20.8 & 20.3 & 31.3 & 28.6 & 28.1\\
+global MLP & 84.2 & 30.5 & 22.2 & 65.5 & 24.2 & 17.5\\
+\midrule
+best linear & 127 & 127 & 127 & 90.9 & 90.9 & 90.9\\
+\midrule
+Bayes loss & \multicolumn{3}{c}{0.114} & \multicolumn{3}{c}{0.091}\\
+\bottomrule
+\end{tabular}
