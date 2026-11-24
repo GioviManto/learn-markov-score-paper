@@ -640,23 +640,32 @@ points: over 2{,}000 sequences the DSM loss differs by $4\times10^{-11}$ at $t=0
 \label{app:em}
 
 \paragraph{Data and selection.} Each clean training sequence is noised once, at one of the twelve noise levels, so EM
-sees $N$ noisy sequences in all. The networks instead see the clean sequences and draw fresh noise at every step. EM runs
-up to 1{,}200 iterations (2{,}400 for the neural kernel) and keeps the kernel at fixed checkpoints; every model, kernel or
-network, is tested at the checkpoint with the lowest score error on 1{,}024 validation sequences. Without the exact
-score, EM can select by the likelihood of noisy validation sequences, which BP computes, and a network by its validation
-loss.
-% src: experiments/e03_baselines.py::_one_view_groups; outputs/E02a/params_capacity.json; tools/core/read_e65.py (E65):
-% free/oracle max em_bp 1.7%, spline 6.9%, energy 6.9%, networks <= 3.4%
+sees $n$ noisy sequences in all. The networks instead see the clean sequences and draw fresh noise at every step. Every
+run saves checkpoints (EM iterations, M-steps on clean data or network steps), and every model is tested at the
+checkpoint with the lowest error against the exact score on separate validation sequences. \Cref{fig:summary}d,
+\cref{fig:results}, \cref{fig:clean-vs-em} and the table of \cref{app:field} use one protocol for every model: 8 seeds
+and the same training, validation (256) and test (512) sequences, up to 800 iterations for EM and for the clean fit,
+and up to 32{,}000 steps for the networks. The kernel of \cref{fig:summary}b and the results of \cref{app:families} and
+\cref{app:networks} come from earlier runs, with up to 1{,}200 EM iterations for the mixture and 2{,}400 for the neural
+kernel, 1{,}024 validation and 2{,}048 test sequences; their captions give the seeds. The step curves of
+\cref{app:compute} select no checkpoint and score all of them. Without the exact score, EM can select by the likelihood
+of noisy validation sequences, which BP computes, and a network by its validation loss.
+% src: E93/E95 driver_params (n_val 256, n_test 512, em_top 800, clean_top 800, net checkpoints to 32000, seeds 0-7);
+% E02a params_capacity.json (n_val 1024, n_test 2048, EM checkpoints to 1200), E55/E56/E87 params (1024, 2048, ladder to
+% 2400); E94 scores every checkpoint. experiments/e03_baselines.py::_one_view_groups (one noisy view per sequence).
 
-\paragraph{Training-set sizes.} On the Laplace chain, EM from noisy sequences was run for $N$ from 32 to 2{,}048, while
-the clean-data kernel and the two networks go up to 32{,}768. The larger sizes were added later, to ask whether the
-networks catch up with the kernel given much more data. From clean data
-the transition counts $\Xi$ are computed once, in a few milliseconds, and an M-step then costs the same at every $N$.
-From noisy data every EM iteration runs BP over all $N$ sequences, so its cost grows in proportion to $N$: $3.4$\,s at
-$N=2{,}048$ for the mixture (\cref{app:compute}), about a minute at $N=32{,}768$, which makes 15 to 30 hours per fit and
-seed over the 1{,}200 to 2{,}400 iterations. 
-% src: E58 registry (sizes 32..32768 added 31 Oct for the clean arms; clean Xi 5 ms at N = 2048; M-step does not depend
-% on N); E63 timing 3.4 s / 2.5 s per EM iteration at N = 2048 -> x16 = 54 s / 40 s; x1200 / x2400 = 18 h / 27 h
+\paragraph{Training-set sizes and cost.} In the single protocol every model, EM included, is trained at every $n$ from
+32 to 32{,}768. From clean data the transition counts $\Xi$ are computed once, in a few milliseconds, and an M-step then
+costs the same at every $n$. From noisy data every EM iteration runs BP over all $n$ sequences, so its cost grows in
+proportion to $n$: $3.4$\,s at $n=2{,}048$ for the mixture (\cref{app:compute}). At $n=32{,}768$ an EM fit of 800
+iterations took about seven hours per seed on one CPU core, against about twelve minutes for the clean fit of the same
+kernel. At the largest $n$ most runs keep their last checkpoint, EM, clean fits and networks alike (the mixture on the
+field, which converges early, is the exception): their validation error was still falling when they stopped, and the
+curves there are those of a fixed budget.
+% src: E93 wall at n = 32768 (medians over seeds, one process per seed, single-threaded BLAS): kernel_em 6.6 / 7.4 h,
+% mixture_em 7.4 / 7.1 h, kernel_clean 0.20 / 0.19 h (Laplace / field). Share of seeds at the last checkpoint, n = 32768
+% (Laplace / field): kernel_em 1.00 / 1.00, mixture_em 1.00 / 0.00, kernel_clean 0.62 / 0.88, mlp 1.00 / 1.00,
+% transformer 1.00 / 0.88, window 0.75 / 0.88. E63 timing 3.4 s per mixture EM iteration at n = 2048; clean Xi 5 ms.
 
 \paragraph{M-steps.} For the mixture, the M-step is a closed-form update \cite{meng1993maximum}: each component's weight,
 mean and variance are the weighted frequency, mean and variance of the residuals $g_i-\alpha g_j$, with weights $\Xi_{ij}$
