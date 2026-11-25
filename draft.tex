@@ -188,18 +188,6 @@ distribution whose score is not local, even though it stays Gaussian. The effect
 level, and fades at large $t$, where the noise dominates. Locality therefore
 cannot simply be imposed on the denoiser.
 
-\begin{figure}[t]
-  \centering
-  \input{figures/draft/fig_factor_graph.tikz}
-  \caption{Factor graph of the posterior $p_t(\mathbf a\mid\mathbf x)$ of \cref{eq:posterior_chain}. White circles are
-  the clean values $a_k$, grey circles the noisy observations $x_k$, which are known. Black squares are the factors: the
-  law $\mu$ of the first site, the kernel $K(a_{k+1}\mid a_k)$ between neighbours and the noise term
-  $\ell_t(x_k\mid a_k)$ at each site. There is no loop, so belief propagation is exact. The forward message $f_k$ carries
-  what $x_1,\ldots,x_k$ say about $a_k$, the backward message $b_k$ what $x_{k+1},\ldots,x_d$ say about it, and the
-  posterior of $a_k$ is proportional to $f_k(a_k)\,b_k(a_k)$.}
-  \label{fig:factor-graph}
-\end{figure}
-
 \subsection{Exact inference with belief propagation}
 \label{sec:tree}
 The structure survives in the posterior of the clean sequence given the noisy one (\cref{eq:posterior_chain}), for any
@@ -342,17 +330,6 @@ fitted by maximum likelihood of the observed transitions, with no E-step; \cref{
 
 \subsection{Comparison with neural denoisers}
 \label{sec:neural-denoisers}
-
-\begin{figure}[t]
-  \centering
-  \input{figures/draft/fig_routes.tikz}
-  \caption{Two ways to learn from the same clean sequences. Left: fit the kernel by maximum likelihood; BP then gives
-  the score at any noise level. Right: train a network on the DSM loss of noisy copies of the sequences
-  (\cref{eq:dsm}); it gives the score at the noise levels it was trained on. On the left only the kernel is estimated,
-  and the score follows from BP up to the grid and the error of the kernel; on the right the network estimates the
-  score itself.}
-  \label{fig:routes}
-\end{figure}
 
 Neural denoisers do not model the transition law: a network predicts the added noise and is trained on the DSM loss
 (\cref{eq:dsm}) itself. We use a global MLP, which knows nothing about locality, a window CNN, which only looks at nearby
@@ -596,6 +573,18 @@ like this, which is why the Gaussian approximation of \cref{fig:grid-vs-gaussian
 \section{Belief propagation on a grid}
 \label{app:bp}
 
+\begin{figure}[!htbp]
+  \centering
+  \input{figures/draft/fig_factor_graph.tikz}
+  \caption{Factor graph of the posterior $p_t(\mathbf a\mid\mathbf x)$ of \cref{eq:posterior_chain}. White circles are
+  the clean values $a_k$, grey circles the noisy observations $x_k$, which are known. Black squares are the factors: the
+  law $\mu$ of the first site, the kernel $K(a_{k+1}\mid a_k)$ between neighbours and the noise term
+  $\ell_t(x_k\mid a_k)$ at each site. There is no loop, so belief propagation is exact. The forward message $f_k$ carries
+  what $x_1,\ldots,x_k$ say about $a_k$, the backward message $b_k$ what $x_{k+1},\ldots,x_d$ say about it, and the
+  posterior of $a_k$ is proportional to $f_k(a_k)\,b_k(a_k)$.}
+  \label{fig:factor-graph}
+\end{figure}
+
 \paragraph{Recursions.} On the grid of \cref{sec:grid}, each column of the kernel matrix is normalised so that
 $\sum_iw_iK_{ij}=1$, and $\mu$ is the law of the first site on the grid. The forward sweep is
 \begin{equation}
@@ -638,6 +627,17 @@ points: over 2{,}000 sequences the DSM loss differs by $4\times10^{-11}$ at $t=0
 
 \section{Learning details}
 \label{app:em}
+
+\begin{figure}[!htbp]
+  \centering
+  \input{figures/draft/fig_routes.tikz}
+  \caption{Two ways to learn from the same clean sequences. Left: fit the kernel by maximum likelihood; BP then gives
+  the score at any noise level. Right: train a network on the DSM loss of noisy copies of the sequences
+  (\cref{eq:dsm}); it gives the score at the noise levels it was trained on. On the left only the kernel is estimated,
+  and the score follows from BP up to the grid and the error of the kernel; on the right the network estimates the
+  score itself.}
+  \label{fig:routes}
+\end{figure}
 
 \paragraph{Data and selection.} Each clean training sequence is noised once, at one of the twelve noise levels, so EM
 sees $n$ noisy sequences in all. The networks instead see the clean sequences and draw fresh noise at every step. Every
