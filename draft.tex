@@ -34,7 +34,7 @@
 \printAffiliationsAndNotice{}
 
 \begin{abstract}
-Diffusion models generate data whose underlying structure is often unknown, and why they generalise remains largely unexplained. We study one of the simplest structures that seems adversarial to them: a first-order Markov chain. Because diffusion adds independent noise to every entry, the score of the noisy sequence is no longer local, making the Markov structure difficult to exploit directly. We show that this structure survives in the posterior: the clean sequence conditioned on its noisy version is still a chain, and therefore a tree. On a tree, belief propagation (BP, the sum–product algorithm) is exact: it computes the optimal denoiser, and hence the score at every noise level, in a number of steps linear in the sequence length. This holds for any transition kernel. For continuous states, the messages are densities, which we represent on a grid and validate against the closed-form Gaussian case. Learning the denoiser then amounts to learning the transition kernel, either parametrically or through a small neural network, which we fit by expectation–maximisation with BP as the E-step. Measured by denoising score matching loss, a kernel learned from noisy sequences outperforms a window CNN, a global MLP and a transformer on a Laplace chain and the stochastic Allen–Cahn field, using fewer training sequences. This comes at a computational price: each kernel update is more expensive than a network step because BP runs over every training sequence, although fewer updates are needed. The networks are heavily optimised while our implementation is not, and the cost depends on the grid resolution and on whether the kernel is learned from noisy or clean sequences. The same factor-graph approach should apply wherever Markov structure is coupled to other latent variables.
+Diffusion models now excel across data modalities, including some long reserved for autoregressive methods such as text, yet it is unclear what in the data could hurt them or help them. To find out, we study a structure that seems ill-suited to denoising diffusion: a first-order Markov chain, whose locality the noise appears to destroy. Because a noisy Markov sequence forms a tree-shaped factor graph, belief propagation computes the Bayes-optimal score exactly, for any transition kernel, in a number of steps linear in the sequence length. Solving the message passing on a grid in continuous space, which we validate on the closed-form Gaussian case, we obtain a generic trainable denoiser in which only the transition kernel is learned, by expectation--maximisation from noisy sequences, and the kernel can be a small neural network. On a Laplace chain and on the stochastic Allen--Cahn field, exploiting the factor graph takes one to two orders of magnitude fewer training sequences than standard deep denoisers, and on the Laplace chain far fewer, if costlier, parameter updates: structure that the noise seemingly destroys can still be exploited by designing the denoiser around it. In this extreme case, fitting the kernel to clean sequences by maximum likelihood, as an autoregressive model would, remains more effective than learning it from noisy ones, but the approach could serve wherever Markov structure is combined with other structure, as in video or physical simulation.
 \end{abstract}
 
 \jgb{Overall comments
@@ -51,27 +51,32 @@ Diffusion models generate data whose underlying structure is often unknown, and 
 
 \begin{figure*}[t]
   \centering
-  \includegraphics{draft-updated/fig_summary}
-  \caption{Summary. (a) One sequence $\mathbf a$ of $d=32$ sites from the stochastic Allen--Cahn field (\cref{sec:allen-cahn}), chosen
+  \includegraphics{draft-27nov/fig_summary}
+  \caption{Summary. (a) Top: a first-order Markov chain $a_1,\dots,a_d$ (white) with transition kernel
+  $K(a_{k+1}\mid a_k)$, and its noisy version (grey), each site noised independently,
+  $\ell_t(x_k\mid a_k)=\mathcal N(x_k;e^{-t}a_k,\Delta_t)$ with $\Delta_t=1-e^{-2t}$. The graph is a chain, hence a tree.
+  Bottom: one sequence $\mathbf a$ of $d=32$ sites from the stochastic Allen--Cahn field (\cref{sec:allen-cahn}), chosen
   to illustrate: a line of values, each pulled towards one of the two wells $\phi=\pm1$ of the potential
-  $V(\phi)=\tfrac14(\phi^2-1)^2$, coupled to its two neighbours and shaken by heat at temperature $\Theta$. Since each
-  site interacts only with its neighbours, the values form a first-order Markov chain (standardised to unit variance),
-  which sits in one well for several sites and jumps between the wells. It is shown at three noise times: $\mathbf x_t=e^{-t}\mathbf a+\sqrt{\Delta_t}\,\boldsymbol\xi$ with
-  $\Delta_t=1-e^{-2t}$ and $\boldsymbol\xi$ standard Gaussian (the same $\boldsymbol\xi$ at each $t$). (b) Top: the factor
-  graph of the posterior of $\mathbf a$ given $\mathbf x$. Clean sites $a_k$ are white, noisy sites $x_k$ grey; black
-  squares are the kernel factors $K(a_{k+1}\mid a_k)$ and the noise factors
-  $\ell_t(x_k\mid a_k)=\mathcal N(x_k;e^{-t}a_k,\Delta_t)$. It is a chain, so belief propagation (BP), one forward sweep
-  ($f_k$) and one backward sweep ($b_k$), is exact for any kernel $K$ and gives the posterior mean
-  $\mathbb E[\mathbf a\mid\mathbf x]$, hence the score
-  $\mathbf S_t(\mathbf x)=(e^{-t}\,\mathbb E[\mathbf a\mid\mathbf x]-\mathbf x)/\Delta_t$. Bottom: the neural kernel learned
-  by expectation--maximisation (EM) from $n=2{,}048$ noisy sequences, as the density of $a_{k+1}$ given $a_k$ (each column
-  scaled to its maximum): the next value jumps between the two wells of the field. (c) The same sequence at $t=0.7$: the clean sequence $\mathbf a$, which fluctuates by itself; the noisy sequence $\mathbf x$; the posterior mean $\mathbb E[\mathbf a\mid\mathbf x]$, computed by
-  BP with the learned kernel; and $\mathbf A_t\mathbf x$, the best linear estimator of $\mathbf a$ from $\mathbf x$, with $\mathbf A_t=e^{-t}\boldsymbol\Sigma_0\boldsymbol\Sigma_t^{-1}$, $\boldsymbol\Sigma_t=e^{-2t}\boldsymbol\Sigma_0+\Delta_t\mathbf I$, where $\boldsymbol\Sigma_0$ is the covariance of the clean
-  sequences. (d) The same field at temperature $\Theta=0.3$, cold enough that a sequence sits in one well for several sites
-  before it jumps (\cref{app:field} adds three higher temperatures): denoising score matching loss $L_{\rm DSM}$ on test sequences (mean over twelve noise levels $t\in[0.05,3]$) against the number $n$ of training sequences, medians over the same 8 seeds for every model. Solid line: the Bayes loss
-  $L_{\rm Bayes}$, the loss of the exact score (computed by BP with the true kernel), which no denoiser can go below. Dashed: the best linear denoiser. The global MLP, the transformer and the window CNN are trained by denoising score
-  matching; the neural kernel is learned by EM from noisy sequences and used inside BP. The global MLP is above the axis for $n\le512$.}
+  $V(\phi)=\tfrac14(\phi^2-1)^2$, coupled to its two neighbours and shaken by heat at temperature $\Theta$, so that the
+  values form a first-order Markov chain (standardised to unit variance). It is shown at the start of the noising,
+  $t/T=0$, and at its end, $t/T=1$, where $\mathbf x_t=e^{-t}\mathbf a+\sqrt{\Delta_t}\,\boldsymbol\xi$ with
+  $\boldsymbol\xi$ standard Gaussian, and $T=3$ (\cref{sec:diffusion}). (b) Top: a standard denoiser, a network that maps
+  the noisy sequence $\mathbf x$ to an estimate $\widehat{\mathbf S}_t$ of the score, trained on the denoising score
+  matching loss $L_{\rm DSM}$. Bottom: our denoiser, belief propagation (BP) on the graph of (a), which gives the score
+  exactly for any kernel; only the kernel is learned, by expectation--maximisation (EM) from noisy sequences. Inset: the
+  neural kernel learned from $n=2{,}048$ noisy Allen--Cahn sequences, as the density of $a_{k+1}$ (vertical) given $a_k$
+  (horizontal), each column scaled to its maximum: the next value jumps between the two wells. (c) The Allen--Cahn
+  field at $\Theta=0.3$, cold enough that a sequence sits in one well for several sites before it jumps
+  (\cref{app:field} adds three higher temperatures): DSM loss on test sequences, averaged over twelve noise levels
+  $t/T\in[1/60,1]$, against the number $n$ of training sequences, medians over the same 8 seeds for every model. Solid
+  line: the Bayes loss, the loss of the exact score (BP with the true kernel), which no denoiser can go below. Dashed:
+  the best linear denoiser. The networks are trained by denoising score matching on clean sequences; the global MLP is
+  above the axis for $n\le512$. (d) Laplace chain, $n=2{,}048$: DSM loss above the Bayes loss against parameter updates
+  (Adam steps; ten per EM iteration for the neural kernel), medians over 16 seeds, symbols as in (c). An EM iteration
+  runs BP over every training sequence and costs more than a network step (\cref{app:compute}).}
   \label{fig:summary}
+  % src: tools/paper_figs/figs_v5.py::fig_summary_v6 (research repo 9d81d01): (a) chain 2465 of _summary_example;
+  % (b) E55 kernel, seed 0, n = 2048; (c) E93 field d = 32; (d) E94 (Laplace, n = 2048, 16 seeds)
 \end{figure*}
 
 \section{Introduction}
@@ -107,6 +112,7 @@ every $a$. We take the chain to be stationary with unit variance, so that the sa
 With a different kernel $K_k$ at each position, every formula holds with $K$ replaced by $K_k$.
 
 \subsection{Generative diffusion}
+\label{sec:diffusion}
 We corrupt each entry independently through a variance-preserving Ornstein--Uhlenbeck (OU) process
 \cite{song2021scorebased}:
 \begin{equation}
@@ -119,7 +125,7 @@ x_k=e^{-t}a_k+\sqrt{\Delta_t}\,\xi_k,
 \xi_k\sim\mathcal{N}(0,1),
 \label{eq:ou_corruption}
 \end{equation}
-with $\Delta_t=1-e^{-2t}$. The noise acts on each entry separately, so the conditional density of the noisy sequence
+with $\Delta_t=1-e^{-2t}$. We stop at the final time $T=3$, where the clean sequence carries $e^{-2T}\approx0.25\%$ of the variance of $\mathbf x_T$, so that $\mathbf x_T$ is close to standard Gaussian, and we quote noise levels as fractions $t/T$. The noise acts on each entry separately, so the conditional density of the noisy sequence
 factorises over entries:
 \begin{equation}
 p_t(\mathbf{x}\mid\mathbf{a})
@@ -157,7 +163,7 @@ $\widehat{\boldsymbol\xi}=-\sqrt{\Delta_t}\,\widehat{\mathbf S}_t(\mathbf x)$. I
     L_{\mathrm{DSM}}=\frac1d\,\mathbb E_{t,\mathbf a,\boldsymbol\xi}\big\|\boldsymbol\xi-\widehat{\boldsymbol\xi}\big\|^2,
     \label{eq:dsm}
 \end{equation}
-is the loss diffusion networks are trained on. We average it over twelve noise levels $t$ log-spaced between $0.05$ and $3$ and evaluate it on $2{,}048$ test
+is the loss diffusion networks are trained on. We average it over twelve noise levels, log-spaced between $t/T=1/60$ and $t/T=1$, and evaluate it on $2{,}048$ test
 sequences. No denoiser does better than the exact posterior mean, so $L_{\mathrm{DSM}}$ has a floor, the Bayes loss
 $L_{\mathrm{Bayes}}$. On synthetic data we know the true kernel, and BP computes the exact posterior mean up to the
 discretisation error of its grid, which we show to be below $10^{-10}$ (\cref{sec:locality}), so we report the excess $L_{\mathrm{DSM}}-L_{\mathrm{Bayes}}$, which is zero for the exact score;
@@ -169,11 +175,11 @@ on real data we report $L_{\mathrm{DSM}}$ itself.
 
 \begin{figure*}[t]
   \centering
-  \includegraphics{fig_locality}
+  \includegraphics{draft-27nov/fig_locality}
   \caption{Noise makes the score non-local. Magnitude of the matrix $\mathbf Q_t$ in the score
   $\mathbf S_t(\mathbf x)=-\mathbf Q_t\mathbf x$ of the Gaussian chain ($\alpha=0.85$, $d=24$) at five noise levels, on
-  a log colour scale. At $t=0$ it is tridiagonal; at large $t$ it tends to the identity; in between, at
-  $t^{*}\simeq0.075$ (framed), it is furthest from tridiagonal, as measured in \cref{app:measures}.}
+  a log colour scale. At $t/T=0$ it is tridiagonal; as $t/T$ grows it tends to the identity; in between, at
+  $t^{*}/T\simeq0.025$ (framed), it is furthest from tridiagonal, as measured in \cref{app:measures}.}
   \label{fig:locality}
   % src: closed form, tools/paper_figs/make_paper_figures.py::fig_locality (t* = 0.0753 printed by the generator)
 \end{figure*}
@@ -221,7 +227,7 @@ $N_g=401$ points on $[-8,8]$ (spacing $h=0.04$) with trapezoidal weights: a mess
 kernel a $401\times401$ matrix, and each integral a weighted matrix--vector product. The messages are normalised after
 each update, and a sequence costs $O(dN_g^2)$ operations, still linear in $d$. The grid introduces a discretisation
 error, which we control by refining the grid and enlarging the domain. We first test it on the Gaussian chain, where the
-exact score is known from the precision matrix: grid BP agrees with it to floating-point rounding for every $t\geq0.05$,
+exact score is known from the precision matrix: grid BP agrees with it to floating-point rounding for every $t/T\geq1/60$,
 our smallest noise level, already with $101$ points. But a smooth density needs few points and a spiky one more, so in
 practice we use $401$ points. On the Laplace chain, whose score is close to a step at small noise, the DSM loss of grid BP
 on $401$ points differs from that on $801$ points, our numerically exact reference, by less than $10^{-10}$ at every noise
@@ -230,7 +236,7 @@ paper the exact score is grid BP with the true kernel on $401$ points.
 
 \begin{figure}[t]
   \centering
-  \includegraphics{fig_closure_cost}
+  \includegraphics{draft-27nov/fig_closure_cost}
   \caption{Grid BP against Gaussian messages on the Laplace chain ($\alpha=0.85$, $d=32$, true kernel): DSM loss above
   the Bayes loss at each noise level, median over $2{,}000$ sequences with the 10--90\% range shaded. The reference is
   grid BP on $801$ points, a numerically exact stand-in for the true posterior mean. Compared with it: grid BP on $401$
@@ -252,7 +258,7 @@ is exact for the Gaussian chain, because Gaussian kernels and noise terms stay G
 of BP, but not for the Laplace chain: Gaussian messages throw away what is non-Gaussian and give back the score of the
 Gaussian chain with the same covariance, which is linear in $\mathbf x$ and cannot see the peak of the Laplace law. This
 matters most at small noise, where the Laplace score is close to a step that flips sign at zero.
-\Cref{fig:grid-vs-gaussian} shows the cost: at $t=0.05$ the excess DSM loss of Gaussian messages is $2\times10^{-2}$, nine
+\Cref{fig:grid-vs-gaussian} shows the cost: at $t/T=1/60$ the excess DSM loss of Gaussian messages is $2\times10^{-2}$, nine
 orders of magnitude above grid BP, and the gap closes at large $t$, where both scores become that of isotropic noise.
 % src: closure_dsm_2000.csv: t=0.05 lin_med 1.96e-2, grid_med 4.3e-11
 This is also different from approximate message passing (AMP) and Thouless--Anderson--Palmer (TAP) methods
@@ -466,7 +472,7 @@ synthetic sequences and a simulated physical field with known ground truth. We s
 \label{app:measures}
 
 \paragraph{DSM loss and Bayes loss.} The test set has $2{,}048$ sequences of length $d=32$ at each of the twelve noise
-levels $t\in\mathcal T$, log-spaced between $0.05$ and $3$, the same for every model. A score estimate predicts the added
+levels $t\in\mathcal T$, log-spaced between $t/T=1/60$ and $t/T=1$ ($T=3$), the same for every model. A score estimate predicts the added
 noise as $\widehat{\boldsymbol\xi}=-\sqrt{\Delta_t}\,\widehat{\mathbf S}_t(\mathbf x)$, and its DSM loss is
 \cref{eq:dsm}. Given $\mathbf x$, the best possible prediction of the noise is its posterior mean,
 $\mathbb E[\boldsymbol\xi\mid\mathbf x]=-\sqrt{\Delta_t}\,\mathbf S_t(\mathbf x)$ (Tweedie's formula, \cref{eq:tweedie}),
@@ -483,7 +489,7 @@ so at each level
 The first term is the Bayes loss, the loss of the exact score, which no denoiser can beat; the second is the excess,
 $\Delta_t$ times the mean squared score error, zero for the exact score. We average both over the twelve levels. A
 denoiser that always predicts $\widehat{\boldsymbol\xi}=\mathbf 0$ has loss $1$. On the Laplace chain the Bayes loss,
-averaged over the levels, is $0.27$ ($0.64$ at $t=0.05$ and $0.009$ at $t=3$), and on the Allen--Cahn field of
+averaged over the levels, is $0.27$ ($0.64$ at $t/T=1/60$ and $0.009$ at $t/T=1$), and on the Allen--Cahn field of
 \cref{sec:allen-cahn} it is $0.26$. The excess weights the levels by $\Delta_t$, so, unlike a score error, it is not
 dominated by the smallest noise levels.
 
@@ -545,16 +551,16 @@ sequence and a network update uses $64$ of them. \Cref{app:compute} compares the
 \label{app:gaussian-laplace}
 
 \paragraph{How non-local the Gaussian score gets.} \Cref{fig:locality-curve} follows the part of $\mathbf Q_t$ outside
-the tridiagonal band as $t$ grows. It is zero at $t=0$, largest at $t^{*}\simeq0.075$, and it vanishes again at large
+the tridiagonal band as $t$ grows. It is zero at $t=0$, largest at $t^{*}/T\simeq0.025$, and it vanishes again at large
 $t$, where $\mathbf Q_t$ tends to the identity. A denoiser that only sees a window of $r$ neighbours on each side cannot
 reach the exact score even with unlimited data, and its best error falls only gradually as the window grows.
 % src: thesis tools/fig_ch10.py::windowed_oracle([1,2,4,8]) = 0.2023, 0.0890, 0.0294, 0.0066 (alpha=0.85, L=32)
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics{fig_locality_curve}
+  \includegraphics{draft-27nov/fig_locality_curve}
   \caption{The ratio $r(t)$ of \cref{app:measures}: size of $\mathbf Q_t$ outside the tridiagonal band, relative to
-  the nearest-neighbour entries of $\mathbf Q_0$, against $t$ (Gaussian chain, $\alpha=0.85$, $L=24$). It peaks at $t^{*}\simeq0.075$.}
+  the nearest-neighbour entries of $\mathbf Q_0$, against $t/T$ (Gaussian chain, $\alpha=0.85$, $d=24$). It peaks at $t^{*}/T\simeq0.025$.}
   \label{fig:locality-curve}
 \end{figure}
 
@@ -567,10 +573,10 @@ like this, which is why the Gaussian approximation of \cref{fig:grid-vs-gaussian
 
 \begin{figure*}[!htbp]
   \centering
-  \includegraphics{fig_laplace}
+  \includegraphics{draft-27nov/fig_laplace}
   \caption{The Laplace chain. (a) Law of the noise $\varepsilon_k$, Laplace against Gaussian with the same variance.
   (b, c) Score of the middle site of a chain of nine against its own noisy value $x_k$, the other sites at zero, at
-  $t=0.05$ and $t=1$. Exact scores from grid BP (Laplace) and in closed form (Gaussian).}
+  $t/T=1/60$ and $t/T=1/3$. Exact scores from grid BP (Laplace) and in closed form (Gaussian).}
   \label{fig:laplace}
 \end{figure*}
 
@@ -612,16 +618,16 @@ is
 normalised to sum to one, and the log-likelihood of a sequence is $\log p(\mathbf x)=\sum_k\log c_k$, which comes from the forward sweep.
 
 \paragraph{Accuracy.} The grid spacing must resolve the noise term, whose width in $a$ is about $\sqrt{2t}$ at small $t$:
-at $t=0.05$ it is $0.32$, eight times the spacing $h=0.04$. With $A=8$ the probability that falls outside the grid is
+at $t/T=1/60$ ($t=0.05$) it is $0.32$, eight times the spacing $h=0.04$. With $A=8$ the probability that falls outside the grid is
 negligible. On the Gaussian chain, where the exact score is $-\mathbf Q_t\mathbf x$, grid BP reaches double-precision
-round-off for $t\geq0.05$ already with 101 points (\cref{fig:grid}). On the Laplace chain we compare 401 with 801
-points: over 2{,}000 sequences the DSM loss differs by $4\times10^{-11}$ at $t=0.05$, and by less at larger $t$
+round-off for $t/T\geq1/60$ already with 101 points (\cref{fig:grid}). On the Laplace chain we compare 401 with 801
+points: over 2{,}000 sequences the DSM loss differs by $4\times10^{-11}$ at $t/T=1/60$, and by less at larger $t$
 (\cref{fig:grid-vs-gaussian}).
 % src: figs_v5._grid_gauss_dsm (excess ~1e-30 for t >= 0.05 at 101, 201, 401 points); closure_dsm_2000.csv (grid 401 vs 801)
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics{draft-updated/fig_grid_gaussian}
+  \includegraphics{draft-27nov/fig_grid_gaussian}
   \caption{Grid BP against the exact score $-\mathbf Q_t\mathbf x$ of the Gaussian chain ($\alpha=0.85$, $d=32$) for
   three grid sizes: DSM loss above the Bayes loss, median over 2{,}000 sequences. Dotted: the excess that a relative
   error of double-precision round-off on the score would give.}
@@ -646,13 +652,13 @@ points: over 2{,}000 sequences the DSM loss differs by $4\times10^{-11}$ at $t=0
 \paragraph{Data and selection.} Each clean training sequence is noised once, at one of the twelve noise levels, so EM
 sees $n$ noisy sequences in all. The networks instead see the clean sequences and draw fresh noise at every step. Every
 run saves checkpoints (EM iterations, M-steps on clean data or network steps), and every model is tested at the
-checkpoint with the lowest error against the exact score on separate validation sequences. \Cref{fig:summary}d,
+checkpoint with the lowest error against the exact score on separate validation sequences. \Cref{fig:summary}c,
 \cref{fig:results}, \cref{fig:clean-vs-em} and the table of \cref{app:field} use one protocol for every model: 8 seeds
 and the same training, validation (256) and test (512) sequences, up to 800 iterations for EM and for the clean fit,
 and up to 32{,}000 steps for the networks. The kernel of \cref{fig:summary}b and the results of \cref{app:families} and
 \cref{app:networks} come from earlier runs, with up to 1{,}200 EM iterations for the mixture and 2{,}400 for the neural
 kernel, 1{,}024 validation and 2{,}048 test sequences; their captions give the seeds. The step curves of
-\cref{app:compute} select no checkpoint and score all of them. Without the exact score, EM can select by the likelihood
+\cref{fig:summary}d and \cref{app:compute} select no checkpoint and score all of them. Without the exact score, EM can select by the likelihood
 of noisy validation sequences, which BP computes, and a network by its validation loss.
 % src: E93/E95 driver_params (n_val 256, n_test 512, em_top 800, clean_top 800, net checkpoints to 32000, seeds 0-7);
 % E02a params_capacity.json (n_val 1024, n_test 2048, EM checkpoints to 1200), E55/E56/E87 params (1024, 2048, ladder to
@@ -701,7 +707,7 @@ transitions are hidden: the E-step spreads each of them over its posterior, and 
 21 on the Laplace chain and between 7 and 29 on the field.
 
 There are two reasons. The first is information: each training sequence is observed once, at one of the twelve noise
-levels, and at the larger levels the noisy value carries little of the clean one (at $t=1$ the clean sequence accounts
+levels, and at the larger levels the noisy value carries little of the clean one (at $t/T=1/3$ the clean sequence accounts
 for $e^{-2t}\approx14\%$ of the variance of $\mathbf x$), so a noisy sequence says less about the kernel than a clean one.
 The second is optimisation: EM moves slowly where the likelihood is flat, and its runs stop at a fixed number of
 iterations (\cref{app:em}). The growth of the gap with $n$ on both chains is consistent with the second, but we did not
